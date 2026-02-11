@@ -198,10 +198,60 @@
       font-weight:900; cursor:pointer; font-size:13px;
     }
     .popMiniBtn:active{ transform: scale(.98); }
+
+    /* ===== 欢迎页 ===== */
+    .splash{
+      position:fixed; inset:0; z-index:9000;
+      background: radial-gradient(ellipse at 50% 40%, #1a0a1a 0%, #0b0b12 100%);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      cursor:pointer;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    .splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+    .splash-heart{
+      font-size: clamp(80px, 20vw, 140px);
+      animation: splashPulse 1.2s ease-in-out infinite;
+      filter: drop-shadow(0 0 40px rgba(255,50,120,0.6));
+    }
+    @keyframes splashPulse{
+      0%,100%{ transform: scale(1); }
+      50%{ transform: scale(1.12); }
+    }
+    .splash-text{
+      margin-top: 20px;
+      font-size: clamp(20px, 5vw, 32px);
+      font-weight: 900;
+      color: #ffd6ea;
+      text-shadow: 0 4px 20px rgba(255,50,120,0.4);
+      letter-spacing: 2px;
+    }
+    .splash-hint{
+      margin-top: 16px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.45);
+      animation: splashBlink 1.8s ease-in-out infinite;
+    }
+    @keyframes splashBlink{
+      0%,100%{ opacity:0.4; }
+      50%{ opacity:0.9; }
+    }
   </style>
 </head>
 
 <body>
+  <!-- 欢迎页 -->
+  <div class="splash" id="splash">
+    <div class="splash-heart">💖</div>
+    <div class="splash-text">有一封情书给你</div>
+    <div class="splash-hint">点击屏幕打开</div>
+  </div>
+
+  <!-- BGM -->
+  <audio id="bgm" loop preload="auto">
+    <source src="bgm.mp3" type="audio/mpeg">
+  </audio>
+
   <div id="errbar"></div>
   <canvas id="fw"></canvas>
 
@@ -882,6 +932,17 @@
         createPopWin(nextLine());
         if(popCount % 2 === 0) launchFirework(false);
       }, 300);
+    });
+
+    /* ================== 欢迎页 + BGM ================== */
+    var splash = document.getElementById("splash");
+    var bgm = document.getElementById("bgm");
+    bgm.volume = 0.5;
+
+    splash.addEventListener("click", function(){
+      splash.classList.add("hide");
+      /* 点击后播放 BGM */
+      bgm.play().catch(function(){});
     });
 
   }catch(e){
