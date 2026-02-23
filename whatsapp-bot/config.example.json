@@ -4,74 +4,13 @@
       "schedule": "0 9 * * 1,3,5",
       "pages": [
         {
-          "pageName": "Nova Furnishing Trade Hub",
-          "pageUrl": "https://www.facebook.com/NovaFurnishingTradeHub"
-        },
-        {
-          "pageName": "Nova Furnishing Warehouse @ Sungei Kadut",
-          "pageUrl": "https://www.facebook.com/novafurnishingwarehouseatsungeikadut"
-        },
-        {
-          "pageName": "Nova Furnishing Factory Outlet @ Sims Drive",
-          "pageUrl": "https://www.facebook.com/novafurnishingfactoryoutletatsimsdrive"
-        },
-        {
-          "pageName": "Nova Furnishing AMK Ave 10",
-          "pageUrl": "https://www.facebook.com/novafurnishingamkave10"
-        },
-        {
-          "pageName": "Mega Home Furnishing",
-          "pageUrl": "https://www.facebook.com/megahomefurnishing"
-        },
-        {
-          "pageName": "Nova Furnishings Singapore",
-          "pageUrl": "https://www.facebook.com/NovaFurnishingsSingapore/"
-        },
-        {
-          "pageName": "Nova Furnishing (New Page)",
-          "pageUrl": "https://www.facebook.com/profile.php?id=61556703561541"
-        },
-        {
-          "pageName": "Rozel Furnishing SG",
-          "pageUrl": "https://www.facebook.com/rozelfurnishingsg/"
-        },
-        {
-          "pageName": "Rozel South",
-          "pageUrl": "https://www.facebook.com/rozelsouth/"
-        },
-        {
-          "pageName": "Rozel Furniture Factory Outlet @ Sungei Kadut",
-          "pageUrl": "https://www.facebook.com/rozelfurniturefactoryoutletsungeikadut/"
-        },
-        {
-          "pageName": "Rozel Furnishing @ Sims Avenue",
-          "pageUrl": "https://www.facebook.com/rozelfurnishingsimsavenue/"
-        },
-        {
-          "pageName": "Xclusive Home Warehouse @ Sims Drive",
-          "pageUrl": "https://www.facebook.com/xclusivehomewarehouseatsimsdrive/"
-        },
-        {
-          "pageName": "Xclusive Home @ Sungei Kadut",
-          "pageUrl": "https://www.facebook.com/xclusivehomesungeikadut/"
-        },
-        {
-          "pageName": "Xclusive Home (New Page 1)",
-          "pageUrl": "https://www.facebook.com/profile.php?id=61554115932954"
-        },
-        {
-          "pageName": "Xclusive Home (New Page 2)",
-          "pageUrl": "https://www.facebook.com/profile.php?id=61586864776960"
-        },
-        {
-          "pageName": "Xclusive Home Singapore",
-          "pageUrl": "https://www.facebook.com/XclusiveHomeSingapore/"
+          "pageName": "Facebook Post",
+          "pageUrl": "https://www.facebook.com/share/r/1aAAjSt4yE/",
+          "customMessage": "Please help to like and share the following post\nhttps://www.facebook.com/share/r/1aAAjSt4yE/"
         }
       ],
       "groups": [
-        "YOUR GROUP NAME 1",
-        "YOUR GROUP NAME 2",
-        "YOUR GROUP NAME 3"
+        "HQ Nova Marketing Dept"
       ]
     }
   ]
