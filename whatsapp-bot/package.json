@@ -1,15 +1,15 @@
 {
-  "name": "whatsapp-claude-bot",
+  "name": "whatsapp-group-reminder",
   "version": "1.0.0",
-  "description": "WhatsApp bot powered by Claude AI",
+  "description": "WhatsApp group reminder bot - auto blast Like & Share reminders to groups",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "whatsapp-web.js": "^1.26.1",
     "qrcode-terminal": "^0.12.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "node-cron": "^3.0.3"
   }
 }

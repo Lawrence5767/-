@@ -1,0 +1,62 @@
+{
+  "reminders": [
+    {
+      "schedule": "0 9 * * 1,3,5",
+      "pages": [
+        {
+          "pageName": "My Facebook Page 1",
+          "pageUrl": "https://www.facebook.com/yourpage1"
+        },
+        {
+          "pageName": "My Facebook Page 2",
+          "pageUrl": "https://www.facebook.com/yourpage2"
+        },
+        {
+          "pageName": "My Facebook Page 3",
+          "pageUrl": "https://www.facebook.com/yourpage3"
+        },
+        {
+          "pageName": "My Facebook Page 4",
+          "pageUrl": "https://www.facebook.com/yourpage4"
+        },
+        {
+          "pageName": "My Facebook Page 5",
+          "pageUrl": "https://www.facebook.com/yourpage5"
+        },
+        {
+          "pageName": "My Facebook Page 6",
+          "pageUrl": "https://www.facebook.com/yourpage6"
+        },
+        {
+          "pageName": "My Facebook Page 7",
+          "pageUrl": "https://www.facebook.com/yourpage7"
+        },
+        {
+          "pageName": "My Facebook Page 8",
+          "pageUrl": "https://www.facebook.com/yourpage8"
+        },
+        {
+          "pageName": "My Facebook Page 9",
+          "pageUrl": "https://www.facebook.com/yourpage9"
+        },
+        {
+          "pageName": "My Facebook Page 10",
+          "pageUrl": "https://www.facebook.com/yourpage10"
+        },
+        {
+          "pageName": "My Facebook Page 11",
+          "pageUrl": "https://www.facebook.com/yourpage11"
+        },
+        {
+          "pageName": "My Facebook Page 12",
+          "pageUrl": "https://www.facebook.com/yourpage12"
+        }
+      ],
+      "groups": [
+        "Group Name 1",
+        "Group Name 2",
+        "Group Name 3"
+      ]
+    }
+  ]
+}

@@ -1,67 +1,23 @@
 require("dotenv").config();
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
-const Anthropic = require("@anthropic-ai/sdk");
+const cron = require("node-cron");
+const fs = require("fs");
+const path = require("path");
 
-// --- Configuration ---
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const BOT_PREFIX = process.env.BOT_PREFIX || "!ai";
-const MAX_TOKENS = parseInt(process.env.MAX_TOKENS, 10) || 1024;
-const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-5";
-const SYSTEM_PROMPT =
-  process.env.SYSTEM_PROMPT ||
-  "You are a helpful AI assistant on WhatsApp. Keep responses concise and well-formatted for mobile reading. Use plain text formatting (no markdown).";
+// --- Load Configuration ---
+const CONFIG_PATH = path.join(__dirname, "config.json");
 
-if (!ANTHROPIC_API_KEY) {
-  console.error("Error: ANTHROPIC_API_KEY is required. Set it in .env file.");
-  process.exit(1);
-}
-
-// --- Initialize Claude client ---
-const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-
-// --- Conversation history (per chat, in-memory) ---
-const conversations = new Map();
-const MAX_HISTORY = parseInt(process.env.MAX_HISTORY, 10) || 20;
-
-function getHistory(chatId) {
-  if (!conversations.has(chatId)) {
-    conversations.set(chatId, []);
+function loadConfig() {
+  if (!fs.existsSync(CONFIG_PATH)) {
+    console.error("Error: config.json not found. Please create it first.");
+    console.log("See config.example.json for reference.");
+    process.exit(1);
   }
-  return conversations.get(chatId);
+  return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
 }
 
-function addToHistory(chatId, role, content) {
-  const history = getHistory(chatId);
-  history.push({ role, content });
-  // Keep history within limits to manage token usage
-  while (history.length > MAX_HISTORY) {
-    history.shift();
-  }
-}
-
-function clearHistory(chatId) {
-  conversations.delete(chatId);
-}
-
-// --- Call Claude API ---
-async function askClaude(chatId, userMessage) {
-  addToHistory(chatId, "user", userMessage);
-
-  const messages = getHistory(chatId);
-
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    system: SYSTEM_PROMPT,
-    messages: messages,
-  });
-
-  const assistantMessage = response.content[0].text;
-  addToHistory(chatId, "assistant", assistantMessage);
-
-  return assistantMessage;
-}
+const config = loadConfig();
 
 // --- Initialize WhatsApp client ---
 const whatsapp = new Client({
@@ -76,6 +32,149 @@ const whatsapp = new Client({
     ],
   },
 });
+
+// --- Track scheduled jobs ---
+const scheduledJobs = [];
+
+// --- Send message to a group by name ---
+async function sendToGroup(groupName, message) {
+  try {
+    const chats = await whatsapp.getChats();
+    const group = chats.find(
+      (chat) => chat.isGroup && chat.name.toLowerCase() === groupName.toLowerCase()
+    );
+
+    if (!group) {
+      console.log(`  [!] Group not found: "${groupName}"`);
+      return false;
+    }
+
+    await group.sendMessage(message);
+    console.log(`  [OK] Sent to: "${groupName}"`);
+    return true;
+  } catch (error) {
+    console.error(`  [ERROR] Failed to send to "${groupName}":`, error.message);
+    return false;
+  }
+}
+
+// --- Blast message to all target groups ---
+async function blastToGroups(groups, message) {
+  console.log(`\n--- Sending blast at ${new Date().toLocaleString()} ---`);
+  console.log(`Message:\n${message}\n`);
+
+  let success = 0;
+  let failed = 0;
+
+  for (const groupName of groups) {
+    const result = await sendToGroup(groupName, message);
+    if (result) success++;
+    else failed++;
+
+    // Small delay between messages to avoid rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  console.log(`--- Done: ${success} sent, ${failed} failed ---\n`);
+}
+
+// --- Build reminder message for a Facebook page ---
+function buildMessage(pageConfig) {
+  const { pageName, pageUrl, customMessage } = pageConfig;
+
+  if (customMessage) {
+    return customMessage;
+  }
+
+  return (
+    `🔔 *REMINDER* 🔔\n\n` +
+    `Hi everyone! Please help support us by liking & sharing our Facebook page:\n\n` +
+    `📌 *${pageName}*\n` +
+    `🔗 ${pageUrl}\n\n` +
+    `👍 Like the page\n` +
+    `📢 Share with your friends\n\n` +
+    `Thank you for your support! 🙏`
+  );
+}
+
+// --- Schedule all reminders ---
+function scheduleReminders() {
+  // Clear any existing jobs
+  scheduledJobs.forEach((job) => job.stop());
+  scheduledJobs.length = 0;
+
+  for (const reminder of config.reminders) {
+    const { schedule, pages, groups } = reminder;
+
+    const job = cron.schedule(schedule, async () => {
+      for (const pageConfig of pages) {
+        const message = buildMessage(pageConfig);
+        await blastToGroups(groups, message);
+
+        // Delay between different page reminders
+        if (pages.length > 1) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+      }
+    });
+
+    scheduledJobs.push(job);
+    console.log(`  Scheduled: "${schedule}" -> ${groups.length} groups, ${pages.length} pages`);
+  }
+}
+
+// --- List all groups (helper command) ---
+async function listGroups() {
+  const chats = await whatsapp.getChats();
+  const groups = chats.filter((chat) => chat.isGroup);
+
+  console.log("\n=== Your WhatsApp Groups ===");
+  groups.forEach((group, i) => {
+    console.log(`  ${i + 1}. ${group.name}`);
+  });
+  console.log(`=== Total: ${groups.length} groups ===\n`);
+}
+
+// --- Manual blast command via terminal ---
+function setupTerminalCommands() {
+  const readline = require("readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  console.log("\nTerminal commands:");
+  console.log("  blast  - Send all reminders now");
+  console.log("  groups - List all your WhatsApp groups");
+  console.log("  status - Show scheduled jobs");
+  console.log("  quit   - Stop the bot\n");
+
+  rl.on("line", async (input) => {
+    const cmd = input.trim().toLowerCase();
+
+    if (cmd === "blast") {
+      console.log("\nSending all reminders now...");
+      for (const reminder of config.reminders) {
+        for (const pageConfig of reminder.pages) {
+          const message = buildMessage(pageConfig);
+          await blastToGroups(reminder.groups, message);
+        }
+      }
+    } else if (cmd === "groups") {
+      await listGroups();
+    } else if (cmd === "status") {
+      console.log(`\nActive scheduled jobs: ${scheduledJobs.length}`);
+      config.reminders.forEach((r, i) => {
+        console.log(`  ${i + 1}. Schedule: "${r.schedule}" -> ${r.groups.length} groups`);
+      });
+      console.log();
+    } else if (cmd === "quit") {
+      console.log("Stopping bot...");
+      scheduledJobs.forEach((job) => job.stop());
+      process.exit(0);
+    }
+  });
+}
 
 // --- WhatsApp Events ---
 whatsapp.on("qr", (qr) => {
@@ -96,105 +195,28 @@ whatsapp.on("auth_failure", (msg) => {
 });
 
 whatsapp.on("ready", () => {
-  console.log("\n=================================");
-  console.log("  WhatsApp-Claude Bot is READY!");
-  console.log("=================================");
-  console.log(`  Model:  ${MODEL}`);
-  console.log(`  Prefix: "${BOT_PREFIX}"`);
-  console.log(`  Max tokens: ${MAX_TOKENS}`);
-  console.log("=================================\n");
-  console.log('Send a message starting with "' + BOT_PREFIX + '" to chat with Claude.');
-  console.log('Send "' + BOT_PREFIX + ' reset" to clear conversation history.\n');
-});
+  console.log("\n==========================================");
+  console.log("  WhatsApp Group Reminder Bot is READY!");
+  console.log("==========================================");
+  console.log(`  Reminders configured: ${config.reminders.length}`);
+  console.log("==========================================\n");
 
-whatsapp.on("message", async (message) => {
-  const body = message.body.trim();
+  // Schedule all reminders
+  console.log("Setting up schedules:");
+  scheduleReminders();
 
-  // Only respond to messages that start with the bot prefix
-  if (!body.toLowerCase().startsWith(BOT_PREFIX.toLowerCase())) {
-    return;
-  }
+  // Setup terminal commands
+  setupTerminalCommands();
 
-  // Extract the actual message after the prefix
-  const userMessage = body.slice(BOT_PREFIX.length).trim();
-
-  if (!userMessage) {
-    await message.reply(
-      `Hi! I'm Claude AI on WhatsApp.\n\nUsage:\n${BOT_PREFIX} <your question>\n${BOT_PREFIX} reset - Clear conversation history`
-    );
-    return;
-  }
-
-  // Handle reset command
-  if (userMessage.toLowerCase() === "reset") {
-    clearHistory(message.from);
-    await message.reply("Conversation history cleared. Starting fresh!");
-    return;
-  }
-
-  // Show typing indicator
-  const chat = await message.getChat();
-  await chat.sendStateTyping();
-
-  try {
-    const reply = await askClaude(message.from, userMessage);
-
-    // WhatsApp has a ~65,000 character limit per message
-    // Split long responses if needed
-    if (reply.length > 4000) {
-      const chunks = splitMessage(reply, 4000);
-      for (const chunk of chunks) {
-        await message.reply(chunk);
-      }
-    } else {
-      await message.reply(reply);
-    }
-  } catch (error) {
-    console.error("Claude API error:", error.message);
-
-    if (error.status === 429) {
-      await message.reply(
-        "I'm receiving too many requests right now. Please try again in a moment."
-      );
-    } else if (error.status === 401) {
-      await message.reply("Bot configuration error. Please contact the admin.");
-    } else {
-      await message.reply(
-        "Sorry, I encountered an error processing your message. Please try again."
-      );
-    }
-  }
+  // List groups on startup so user can verify group names
+  listGroups();
 });
 
 whatsapp.on("disconnected", (reason) => {
   console.log("WhatsApp disconnected:", reason);
 });
 
-// --- Utility ---
-function splitMessage(text, maxLength) {
-  const chunks = [];
-  let remaining = text;
-  while (remaining.length > 0) {
-    if (remaining.length <= maxLength) {
-      chunks.push(remaining);
-      break;
-    }
-    // Try to split at a newline
-    let splitIndex = remaining.lastIndexOf("\n", maxLength);
-    if (splitIndex === -1 || splitIndex < maxLength / 2) {
-      // Fall back to splitting at a space
-      splitIndex = remaining.lastIndexOf(" ", maxLength);
-    }
-    if (splitIndex === -1 || splitIndex < maxLength / 2) {
-      splitIndex = maxLength;
-    }
-    chunks.push(remaining.slice(0, splitIndex));
-    remaining = remaining.slice(splitIndex).trimStart();
-  }
-  return chunks;
-}
-
 // --- Start ---
-console.log("Starting WhatsApp-Claude Bot...");
+console.log("Starting WhatsApp Group Reminder Bot...");
 console.log("Connecting to WhatsApp Web...\n");
 whatsapp.initialize();
