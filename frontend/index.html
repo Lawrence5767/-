@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAU/USD Trading Tracker</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2234;
+            --bg-card-hover: #1f2a40;
+            --border: #2a3548;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --gold: #f59e0b;
+            --gold-dim: #d97706;
+            --green: #10b981;
+            --green-bg: rgba(16, 185, 129, 0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.1);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.1);
+            --purple: #8b5cf6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: -0.5px;
+        }
+
+        .logo span { color: var(--text-secondary); font-weight: 400; }
+
+        .price-display {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: var(--bg-card);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .price-bid, .price-ask { text-align: center; }
+
+        .price-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .price-value {
+            font-size: 22px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .price-bid .price-value { color: var(--red); }
+        .price-ask .price-value { color: var(--green); }
+
+        .spread-badge {
+            background: var(--bg-secondary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+            transition: background 0.3s;
+        }
+
+        .status-dot.connected {
+            background: var(--green);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            gap: 4px;
+        }
+
+        .nav-tab {
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .nav-tab:hover { color: var(--text-secondary); }
+
+        .nav-tab.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+        }
+
+        /* Main Content */
+        .main { padding: 20px 24px; }
+
+        /* Account Overview Cards */
+        .account-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .account-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .account-card:hover { border-color: var(--gold-dim); }
+
+        .account-card-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .account-card-value {
+            font-size: 20px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .account-card-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .panel-badge {
+            background: var(--blue-bg);
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .panel-body { padding: 0; }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            font-weight: 600;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: var(--bg-card-hover); }
+
+        .type-buy { color: var(--green); font-weight: 600; }
+        .type-sell { color: var(--red); font-weight: 600; }
+
+        .profit-positive { color: var(--green); font-weight: 600; }
+        .profit-negative { color: var(--red); font-weight: 600; }
+        .profit-zero { color: var(--text-muted); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Analytics Grid */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            padding: 18px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Analytics Bar Chart */
+        .pnl-bar-chart { padding: 18px; }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+
+        .bar-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            width: 80px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 20px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .bar-fill.positive { background: var(--green); }
+        .bar-fill.negative { background: var(--red); }
+
+        .bar-value {
+            font-size: 11px;
+            color: var(--text-secondary);
+            width: 70px;
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Alerts Panel */
+        .alerts-config {
+            padding: 18px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .alert-input-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .alert-input-group input {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .alert-input-group input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .alert-input-group input::placeholder { color: var(--text-muted); }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-gold {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .btn-gold:hover { background: var(--gold-dim); }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .btn-demo {
+            background: var(--purple);
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 14px;
+        }
+
+        .btn-demo:hover { opacity: 0.85; }
+
+        /* Alert Toast */
+        .alert-toast-container {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .alert-toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            max-width: 380px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .alert-toast.warning { border-left: 3px solid var(--gold); }
+        .alert-toast.danger { border-left: 3px solid var(--red); }
+        .alert-toast.success { border-left: 3px solid var(--green); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* History filter */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select, .filter-bar input {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .filter-bar select:focus, .filter-bar input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .filter-bar label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Section visibility */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* Welcome banner */
+        .welcome-banner {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .welcome-banner h2 {
+            color: var(--gold);
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .welcome-banner p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto 16px;
+        }
+
+        .welcome-banner .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            text-align: left;
+        }
+
+        .welcome-banner .step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .welcome-banner .step-num {
+            color: var(--gold);
+            font-weight: 700;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .welcome-banner .step-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Win rate donut */
+        .donut-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .donut-chart {
+            position: relative;
+            width: 140px;
+            height: 140px;
+        }
+
+        .donut-chart svg {
+            width: 140px;
+            height: 140px;
+            transform: rotate(-90deg);
+        }
+
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .donut-center .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .donut-center .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-left: 24px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 12px; padding: 12px; }
+            .price-display { width: 100%; justify-content: center; }
+            .main { padding: 12px; }
+            .account-cards { grid-template-columns: repeat(2, 1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
+            .nav-tabs { overflow-x: auto; padding: 0 12px; }
+            .welcome-banner .steps { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <div class="logo">XAU/USD <span>Tracker</span></div>
+        <div class="price-display">
+            <div class="price-bid">
+                <div class="price-label">Bid</div>
+                <div class="price-value" id="bid-price">--</div>
+            </div>
+            <div class="spread-badge" id="spread">-- spread</div>
+            <div class="price-ask">
+                <div class="price-label">Ask</div>
+                <div class="price-value" id="ask-price">--</div>
+            </div>
+        </div>
+    </div>
+    <div class="header-right">
+        <button class="btn btn-demo" onclick="loadDemo()">Load Demo</button>
+        <div class="status-dot" id="status-dot"></div>
+        <span class="status-text" id="status-text">Waiting for MT5</span>
+        <span class="status-text" id="last-update" style="margin-left:8px;"></span>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="nav-tabs">
+    <div class="nav-tab active" data-tab="dashboard">Dashboard</div>
+    <div class="nav-tab" data-tab="positions">Positions</div>
+    <div class="nav-tab" data-tab="history">History</div>
+    <div class="nav-tab" data-tab="analytics">Analytics</div>
+    <div class="nav-tab" data-tab="alerts">Alerts</div>
+</div>
+
+<!-- Alert Toasts -->
+<div class="alert-toast-container" id="toast-container"></div>
+
+<div class="main">
+    <!-- ===== DASHBOARD TAB ===== -->
+    <div class="tab-content active" id="tab-dashboard">
+        <!-- Welcome Banner (shown when no data) -->
+        <div class="welcome-banner" id="welcome-banner">
+            <h2>Welcome to XAU/USD Trading Tracker</h2>
+            <p>This dashboard receives live trade data from your MetaTrader 5 terminal via an Expert Advisor. Works on macOS, Linux, and Windows.</p>
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-demo" onclick="loadDemo()" style="font-size:14px; padding:10px 24px;">
+                    Load Demo Data to Preview
+                </button>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">Step 1</div>
+                    <div class="step-text">Install the XAU_USD_Tracker EA in your MT5 terminal's Experts folder</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 2</div>
+                    <div class="step-text">Set the EA's ServerURL to point to this machine (e.g. http://your-mac-ip:8000)</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 3</div>
+                    <div class="step-text">Attach the EA to any XAUUSD chart in MT5 and enable AutoTrading</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 4</div>
+                    <div class="step-text">Data will flow automatically - positions, orders, history, and price updates</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Overview -->
+        <div class="account-cards" id="account-section" style="display:none;">
+            <div class="account-card">
+                <div class="account-card-label">Balance</div>
+                <div class="account-card-value" id="acct-balance">--</div>
+            </div>
+            <div class="account-card">
+                <div class="account-card-label">Equity</div>
+                <div class="account-card-value" id="acct-equity">--</div>
+            </div>
+            <div class="account-card">
+                <div class="account-card-label">Floating P&L</div>
+                <div class="account-card-value" id="acct-profit">--</div>
+            </div>
+            <div class="account-card">
+                <div class="account-card-label">Margin Used</div>
+                <div class="account-card-value" id="acct-margin">--</div>
+            </div>
+            <div class="account-card">
+                <div class="account-card-label">Free Margin</div>
+                <div class="account-card-value" id="acct-free-margin">--</div>
+            </div>
+            <div class="account-card">
+                <div class="account-card-label">Margin Level</div>
+                <div class="account-card-value" id="acct-margin-level">--</div>
+            </div>
+        </div>
+
+        <!-- Open Positions Summary -->
+        <div class="panel" id="dash-positions-panel" style="display:none;">
+            <div class="panel-header">
+                <span class="panel-title">Open XAU/USD Positions</span>
+                <span class="panel-badge" id="pos-count">0</span>
+            </div>
+            <div class="panel-body">
+                <table class="data-table" id="positions-table-dash">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                            <th>Open Price</th>
+                            <th>Current</th>
+                            <th>SL</th>
+                            <th>TP</th>
+                            <th>Swap</th>
+                            <th>Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-body-dash">
+                        <tr><td colspan="9" class="empty-state">No open positions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pending Orders Summary -->
+        <div class="panel" id="dash-orders-panel" style="display:none;">
+            <div class="panel-header">
+                <span class="panel-title">Pending Orders</span>
+                <span class="panel-badge" id="order-count">0</span>
+            </div>
+            <div class="panel-body">
+                <table class="data-table" id="orders-table-dash">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                            <th>Price</th>
+                            <th>SL</th>
+                            <th>TP</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body-dash">
+                        <tr><td colspan="7" class="empty-state">No pending orders</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POSITIONS TAB ===== -->
+    <div class="tab-content" id="tab-positions">
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Open XAU/USD Positions</span>
+                <span class="panel-badge" id="pos-count-2">0</span>
+            </div>
+            <div class="panel-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                            <th>Open Price</th>
+                            <th>Current Price</th>
+                            <th>SL</th>
+                            <th>TP</th>
+                            <th>Swap</th>
+                            <th>Commission</th>
+                            <th>Profit</th>
+                            <th>Opened</th>
+                            <th>Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-body-full">
+                        <tr><td colspan="12" class="empty-state">No open positions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Pending Orders</span>
+                <span class="panel-badge" id="order-count-2">0</span>
+            </div>
+            <div class="panel-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                            <th>Price</th>
+                            <th>SL</th>
+                            <th>TP</th>
+                            <th>Time Setup</th>
+                            <th>Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body-full">
+                        <tr><td colspan="8" class="empty-state">No pending orders</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HISTORY TAB ===== -->
+    <div class="tab-content" id="tab-history">
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Trade History</span>
+                <span class="panel-badge" id="history-count">0</span>
+            </div>
+            <div class="filter-bar">
+                <label>Period:</label>
+                <select id="history-days">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="180">Last 180 days</option>
+                    <option value="365">Last 365 days</option>
+                </select>
+                <label>Type:</label>
+                <select id="history-filter-type">
+                    <option value="all">All</option>
+                    <option value="BUY">Buy</option>
+                    <option value="SELL">Sell</option>
+                </select>
+                <label>Entry:</label>
+                <select id="history-filter-entry">
+                    <option value="all">All</option>
+                    <option value="IN">Entry In</option>
+                    <option value="OUT">Entry Out</option>
+                </select>
+                <button class="btn btn-gold" onclick="loadHistory()">Refresh</button>
+            </div>
+            <div class="panel-body" style="max-height: 600px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Order</th>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Entry</th>
+                            <th>Volume</th>
+                            <th>Price</th>
+                            <th>Commission</th>
+                            <th>Swap</th>
+                            <th>Profit</th>
+                            <th>Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr><td colspan="11" class="empty-state">Click Refresh to load history</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ANALYTICS TAB ===== -->
+    <div class="tab-content" id="tab-analytics">
+        <div class="filter-bar" style="background: var(--bg-card); border-radius: 10px 10px 0 0; border: 1px solid var(--border); border-bottom: none;">
+            <label>Analytics Period:</label>
+            <select id="analytics-days">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="365">Last 365 days</option>
+            </select>
+            <button class="btn btn-gold" onclick="loadAnalytics()">Refresh</button>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="panel" style="border-radius: 0 0 10px 10px;">
+            <div class="analytics-grid" id="analytics-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Trades</div>
+                    <div class="stat-value" id="stat-total-trades">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Net P&L</div>
+                    <div class="stat-value" id="stat-net-pnl">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value" id="stat-win-rate">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Profit Factor</div>
+                    <div class="stat-value" id="stat-profit-factor">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Win</div>
+                    <div class="stat-value profit-positive" id="stat-avg-win">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Loss</div>
+                    <div class="stat-value profit-negative" id="stat-avg-loss">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Largest Win</div>
+                    <div class="stat-value profit-positive" id="stat-largest-win">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Largest Loss</div>
+                    <div class="stat-value profit-negative" id="stat-largest-loss">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Max Drawdown</div>
+                    <div class="stat-value profit-negative" id="stat-max-dd">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Volume</div>
+                    <div class="stat-value" id="stat-total-volume">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Commission</div>
+                    <div class="stat-value" id="stat-total-commission">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Swap</div>
+                    <div class="stat-value" id="stat-total-swap">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Win Rate Donut -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Win / Loss Distribution</span>
+            </div>
+            <div class="panel-body">
+                <div class="donut-container" id="donut-container">
+                    <div class="donut-chart">
+                        <svg viewBox="0 0 140 140">
+                            <circle cx="70" cy="70" r="55" fill="none" stroke="var(--border)" stroke-width="16"/>
+                            <circle id="donut-win" cx="70" cy="70" r="55" fill="none" stroke="var(--green)" stroke-width="16"
+                                stroke-dasharray="0 345.58" stroke-linecap="round"/>
+                            <circle id="donut-loss" cx="70" cy="70" r="55" fill="none" stroke="var(--red)" stroke-width="16"
+                                stroke-dasharray="0 345.58" stroke-linecap="round"/>
+                        </svg>
+                        <div class="donut-center">
+                            <div class="value" id="donut-rate">--</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                    </div>
+                    <div class="donut-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:var(--green)"></div>
+                            <span id="legend-wins">0 Wins</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:var(--red)"></div>
+                            <span id="legend-losses">0 Losses</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- P&L Breakdown -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Profit &amp; Loss Breakdown</span>
+            </div>
+            <div class="panel-body">
+                <div class="pnl-bar-chart" id="pnl-bar-chart">
+                    <div class="bar-row">
+                        <div class="bar-label">Gross Profit</div>
+                        <div class="bar-track"><div class="bar-fill positive" id="bar-profit" style="width:0%"></div></div>
+                        <div class="bar-value" id="bar-profit-val">$0</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">Gross Loss</div>
+                        <div class="bar-track"><div class="bar-fill negative" id="bar-loss" style="width:0%"></div></div>
+                        <div class="bar-value" id="bar-loss-val">$0</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">Commission</div>
+                        <div class="bar-track"><div class="bar-fill negative" id="bar-comm" style="width:0%"></div></div>
+                        <div class="bar-value" id="bar-comm-val">$0</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">Swap</div>
+                        <div class="bar-track"><div class="bar-fill negative" id="bar-swap" style="width:0%"></div></div>
+                        <div class="bar-value" id="bar-swap-val">$0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ALERTS TAB ===== -->
+    <div class="tab-content" id="tab-alerts">
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Alert Configuration</span>
+            </div>
+            <div class="panel-body">
+                <div class="alerts-config">
+                    <div class="alert-input-group">
+                        <label>Price Upper Threshold</label>
+                        <input type="number" id="alert-price-upper" placeholder="e.g. 2950.00" step="0.01">
+                    </div>
+                    <div class="alert-input-group">
+                        <label>Price Lower Threshold</label>
+                        <input type="number" id="alert-price-lower" placeholder="e.g. 2900.00" step="0.01">
+                    </div>
+                    <div class="alert-input-group">
+                        <label>P&L Upper (Take Profit Alert)</label>
+                        <input type="number" id="alert-pnl-upper" placeholder="e.g. 500.00" step="0.01">
+                    </div>
+                    <div class="alert-input-group">
+                        <label>P&L Lower (Stop Loss Alert)</label>
+                        <input type="number" id="alert-pnl-lower" placeholder="e.g. -500.00" step="0.01">
+                    </div>
+                    <div class="alert-input-group">
+                        <label>Margin Level Lower (%)</label>
+                        <input type="number" id="alert-margin-lower" placeholder="e.g. 150" step="1">
+                    </div>
+                </div>
+                <div style="padding: 0 18px 18px; display:flex; gap:10px;">
+                    <button class="btn btn-gold" onclick="saveAlerts()">Save Alerts</button>
+                    <button class="btn btn-outline" onclick="clearAlerts()">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Log -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Alert Log</span>
+                <button class="btn btn-outline" onclick="clearAlertLog()" style="font-size:11px; padding:4px 12px;">Clear</button>
+            </div>
+            <div class="panel-body">
+                <div id="alert-log" style="max-height: 400px; overflow-y: auto;">
+                    <div class="empty-state">No alerts triggered yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// XAU/USD Trading Tracker - Frontend Logic
+// ============================================================
+
+const API_BASE = window.location.origin;
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+
+let ws = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT = 10;
+let alertLog = [];
+let hasData = false;
+
+// --- Tab Navigation ---
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+
+        if (tab.dataset.tab === 'history') loadHistory();
+        if (tab.dataset.tab === 'analytics') loadAnalytics();
+    });
+});
+
+// --- Formatting Helpers ---
+function fmt(val, decimals = 2) {
+    if (val === null || val === undefined || val === '--') return '--';
+    return Number(val).toFixed(decimals);
+}
+
+function fmtMoney(val) {
+    if (val === null || val === undefined || val === '--') return '--';
+    const n = Number(val);
+    const prefix = n >= 0 ? '' : '-';
+    return prefix + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function profitClass(val) {
+    if (val > 0) return 'profit-positive';
+    if (val < 0) return 'profit-negative';
+    return 'profit-zero';
+}
+
+function typeClass(type) {
+    if (type && type.includes('BUY')) return 'type-buy';
+    if (type && type.includes('SELL')) return 'type-sell';
+    return '';
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// --- Show/Hide welcome banner ---
+function showDataSections() {
+    if (hasData) return;
+    hasData = true;
+    document.getElementById('welcome-banner').style.display = 'none';
+    document.getElementById('account-section').style.display = '';
+    document.getElementById('dash-positions-panel').style.display = '';
+    document.getElementById('dash-orders-panel').style.display = '';
+}
+
+// --- Demo Data ---
+async function loadDemo() {
+    try {
+        const resp = await fetch(API_BASE + '/api/demo', { method: 'POST' });
+        const data = await resp.json();
+        showToast({ message: 'Demo data loaded - ' + data.deals + ' deals generated', severity: 'success' });
+    } catch (err) {
+        showToast({ message: 'Failed to load demo: ' + err.message, severity: 'danger' });
+    }
+}
+
+// --- WebSocket ---
+function connectWS() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+        reconnectAttempts = 0;
+    };
+
+    ws.onclose = () => {
+        setStatus(false);
+        if (reconnectAttempts < MAX_RECONNECT) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            reconnectAttempts++;
+            setTimeout(connectWS, delay);
+        }
+    };
+
+    ws.onerror = () => {
+        ws.close();
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'update') {
+            setStatus(true);
+            if (data.account && data.account.login) {
+                showDataSections();
+            }
+            updatePrice(data.price);
+            updateAccount(data.account);
+            updatePositions(data.positions);
+            updateOrders(data.orders);
+            updateTimestamp(data.timestamp);
+
+            if (data.alerts && data.alerts.length > 0) {
+                data.alerts.forEach(a => triggerAlert(a));
+            }
+        }
+
+        if (data.type === 'status') {
+            setStatus(data.connected);
+        }
+
+        if (data.type === 'error') {
+            console.warn('[WS] Error:', data.message);
+        }
+
+        if (data.type === 'alert_config_updated') {
+            showToast({ message: 'Alert configuration updated', severity: 'success' });
+        }
+    };
+}
+
+function setStatus(connected) {
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    if (connected) {
+        dot.classList.add('connected');
+        text.textContent = 'MT5 Connected';
+    } else {
+        dot.classList.remove('connected');
+        text.textContent = 'Waiting for MT5';
+    }
+}
+
+function updateTimestamp(ts) {
+    document.getElementById('last-update').textContent = ts;
+}
+
+// --- Price ---
+function updatePrice(price) {
+    if (!price || !price.bid) return;
+    document.getElementById('bid-price').textContent = fmt(price.bid, 2);
+    document.getElementById('ask-price').textContent = fmt(price.ask, 2);
+    document.getElementById('spread').textContent = fmt(price.spread, 2) + ' spread';
+}
+
+// --- Account ---
+function updateAccount(acct) {
+    if (!acct || !acct.balance) return;
+    document.getElementById('acct-balance').textContent = fmtMoney(acct.balance);
+    document.getElementById('acct-equity').textContent = fmtMoney(acct.equity);
+
+    const profitEl = document.getElementById('acct-profit');
+    profitEl.textContent = fmtMoney(acct.profit);
+    profitEl.className = 'account-card-value ' + profitClass(acct.profit);
+
+    document.getElementById('acct-margin').textContent = fmtMoney(acct.margin);
+    document.getElementById('acct-free-margin').textContent = fmtMoney(acct.free_margin);
+    document.getElementById('acct-margin-level').textContent =
+        acct.margin_level ? fmt(acct.margin_level, 1) + '%' : 'N/A';
+}
+
+// --- Positions ---
+function updatePositions(positions) {
+    if (!positions) return;
+    const count = positions.length;
+    document.getElementById('pos-count').textContent = count;
+    document.getElementById('pos-count-2').textContent = count;
+
+    // Dashboard table
+    const dashBody = document.getElementById('positions-body-dash');
+    if (count === 0) {
+        dashBody.innerHTML = '<tr><td colspan="9" class="empty-state">No open positions</td></tr>';
+    } else {
+        dashBody.innerHTML = positions.map(p => `
+            <tr>
+                <td>${escapeHtml(String(p.ticket))}</td>
+                <td class="${typeClass(p.type)}">${escapeHtml(p.type)}</td>
+                <td>${fmt(p.volume, 2)}</td>
+                <td>${fmt(p.open_price, 2)}</td>
+                <td>${fmt(p.current_price, 2)}</td>
+                <td>${p.sl ? fmt(p.sl, 2) : '--'}</td>
+                <td>${p.tp ? fmt(p.tp, 2) : '--'}</td>
+                <td>${fmtMoney(p.swap)}</td>
+                <td class="${profitClass(p.profit)}">${fmtMoney(p.profit)}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Full positions table
+    const fullBody = document.getElementById('positions-body-full');
+    if (count === 0) {
+        fullBody.innerHTML = '<tr><td colspan="12" class="empty-state">No open positions</td></tr>';
+    } else {
+        fullBody.innerHTML = positions.map(p => `
+            <tr>
+                <td>${escapeHtml(String(p.ticket))}</td>
+                <td class="${typeClass(p.type)}">${escapeHtml(p.type)}</td>
+                <td>${fmt(p.volume, 2)}</td>
+                <td>${fmt(p.open_price, 2)}</td>
+                <td>${fmt(p.current_price, 2)}</td>
+                <td>${p.sl ? fmt(p.sl, 2) : '--'}</td>
+                <td>${p.tp ? fmt(p.tp, 2) : '--'}</td>
+                <td>${fmtMoney(p.swap)}</td>
+                <td>${fmtMoney(p.commission)}</td>
+                <td class="${profitClass(p.profit)}">${fmtMoney(p.profit)}</td>
+                <td>${escapeHtml(p.open_time)}</td>
+                <td>${escapeHtml(p.comment || '')}</td>
+            </tr>
+        `).join('');
+    }
+}
+
+// --- Orders ---
+function updateOrders(orders) {
+    if (!orders) return;
+    const count = orders.length;
+    document.getElementById('order-count').textContent = count;
+    document.getElementById('order-count-2').textContent = count;
+
+    // Dashboard table
+    const dashBody = document.getElementById('orders-body-dash');
+    if (count === 0) {
+        dashBody.innerHTML = '<tr><td colspan="7" class="empty-state">No pending orders</td></tr>';
+    } else {
+        dashBody.innerHTML = orders.map(o => `
+            <tr>
+                <td>${escapeHtml(String(o.ticket))}</td>
+                <td class="${typeClass(o.type)}">${escapeHtml(o.type)}</td>
+                <td>${fmt(o.volume, 2)}</td>
+                <td>${fmt(o.price, 2)}</td>
+                <td>${o.sl ? fmt(o.sl, 2) : '--'}</td>
+                <td>${o.tp ? fmt(o.tp, 2) : '--'}</td>
+                <td>${escapeHtml(o.time_setup)}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Full orders table
+    const fullBody = document.getElementById('orders-body-full');
+    if (count === 0) {
+        fullBody.innerHTML = '<tr><td colspan="8" class="empty-state">No pending orders</td></tr>';
+    } else {
+        fullBody.innerHTML = orders.map(o => `
+            <tr>
+                <td>${escapeHtml(String(o.ticket))}</td>
+                <td class="${typeClass(o.type)}">${escapeHtml(o.type)}</td>
+                <td>${fmt(o.volume, 2)}</td>
+                <td>${fmt(o.price, 2)}</td>
+                <td>${o.sl ? fmt(o.sl, 2) : '--'}</td>
+                <td>${o.tp ? fmt(o.tp, 2) : '--'}</td>
+                <td>${escapeHtml(o.time_setup)}</td>
+                <td>${escapeHtml(o.comment || '')}</td>
+            </tr>
+        `).join('');
+    }
+}
+
+// --- History ---
+async function loadHistory() {
+    const days = document.getElementById('history-days').value;
+    const typeFilter = document.getElementById('history-filter-type').value;
+    const entryFilter = document.getElementById('history-filter-entry').value;
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/history?days=${days}`);
+        const data = await resp.json();
+        let deals = data.deals || [];
+
+        if (typeFilter !== 'all') {
+            deals = deals.filter(d => d.type === typeFilter);
+        }
+        if (entryFilter !== 'all') {
+            deals = deals.filter(d => d.entry === entryFilter);
+        }
+
+        document.getElementById('history-count').textContent = deals.length;
+
+        const body = document.getElementById('history-body');
+        if (deals.length === 0) {
+            body.innerHTML = '<tr><td colspan="11" class="empty-state">No trades found for this period</td></tr>';
+            return;
+        }
+
+        body.innerHTML = deals.map(d => `
+            <tr>
+                <td>${escapeHtml(String(d.ticket))}</td>
+                <td>${escapeHtml(String(d.order))}</td>
+                <td>${escapeHtml(d.time)}</td>
+                <td class="${typeClass(d.type)}">${escapeHtml(d.type)}</td>
+                <td>${escapeHtml(d.entry)}</td>
+                <td>${fmt(d.volume, 2)}</td>
+                <td>${fmt(d.price, 2)}</td>
+                <td>${fmtMoney(d.commission)}</td>
+                <td>${fmtMoney(d.swap)}</td>
+                <td class="${profitClass(d.profit)}">${fmtMoney(d.profit)}</td>
+                <td>${escapeHtml(d.comment || '')}</td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        document.getElementById('history-body').innerHTML =
+            `<tr><td colspan="11" class="empty-state">Error loading history: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+// --- Analytics ---
+async function loadAnalytics() {
+    const days = document.getElementById('analytics-days').value;
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/analytics?days=${days}`);
+        const data = await resp.json();
+
+        document.getElementById('stat-total-trades').textContent = data.total_trades;
+
+        const netEl = document.getElementById('stat-net-pnl');
+        netEl.textContent = fmtMoney(data.net_pnl);
+        netEl.className = 'stat-value ' + profitClass(data.net_pnl);
+
+        document.getElementById('stat-win-rate').textContent = data.win_rate + '%';
+        document.getElementById('stat-profit-factor').textContent =
+            data.profit_factor === Infinity ? 'Inf' : fmt(data.profit_factor, 2);
+        document.getElementById('stat-avg-win').textContent = fmtMoney(data.avg_profit);
+        document.getElementById('stat-avg-loss').textContent = fmtMoney(-data.avg_loss);
+        document.getElementById('stat-largest-win').textContent = fmtMoney(data.largest_win);
+        document.getElementById('stat-largest-loss').textContent = fmtMoney(data.largest_loss);
+        document.getElementById('stat-max-dd').textContent = fmtMoney(-data.max_drawdown);
+        document.getElementById('stat-total-volume').textContent = fmt(data.total_volume, 2) + ' lots';
+        document.getElementById('stat-total-commission').textContent = fmtMoney(data.total_commission);
+        document.getElementById('stat-total-swap').textContent = fmtMoney(data.total_swap);
+
+        // Donut
+        const circumference = 2 * Math.PI * 55;
+        const winPct = data.win_rate / 100;
+        const winLen = circumference * winPct;
+        const lossLen = circumference * (1 - winPct);
+
+        document.getElementById('donut-win').setAttribute('stroke-dasharray', `${winLen} ${circumference}`);
+        document.getElementById('donut-loss').setAttribute('stroke-dasharray', `${lossLen} ${circumference}`);
+        document.getElementById('donut-loss').setAttribute('stroke-dashoffset', `-${winLen}`);
+        document.getElementById('donut-rate').textContent = data.win_rate + '%';
+        document.getElementById('legend-wins').textContent = data.winning_trades + ' Wins';
+        document.getElementById('legend-losses').textContent = data.losing_trades + ' Losses';
+
+        // P&L bars
+        const maxBar = Math.max(data.total_profit, data.total_loss, Math.abs(data.total_commission), Math.abs(data.total_swap), 1);
+        document.getElementById('bar-profit').style.width = (data.total_profit / maxBar * 100) + '%';
+        document.getElementById('bar-profit-val').textContent = fmtMoney(data.total_profit);
+        document.getElementById('bar-loss').style.width = (data.total_loss / maxBar * 100) + '%';
+        document.getElementById('bar-loss-val').textContent = fmtMoney(-data.total_loss);
+        document.getElementById('bar-comm').style.width = (Math.abs(data.total_commission) / maxBar * 100) + '%';
+        document.getElementById('bar-comm-val').textContent = fmtMoney(data.total_commission);
+        document.getElementById('bar-swap').style.width = (Math.abs(data.total_swap) / maxBar * 100) + '%';
+        document.getElementById('bar-swap-val').textContent = fmtMoney(data.total_swap);
+
+    } catch (err) {
+        console.error('Failed to load analytics:', err);
+    }
+}
+
+// --- Alerts ---
+function saveAlerts() {
+    const config = {
+        action: 'set_alerts',
+        price_upper: parseFloat(document.getElementById('alert-price-upper').value) || null,
+        price_lower: parseFloat(document.getElementById('alert-price-lower').value) || null,
+        pnl_upper: parseFloat(document.getElementById('alert-pnl-upper').value) || null,
+        pnl_lower: parseFloat(document.getElementById('alert-pnl-lower').value) || null,
+        margin_level_lower: parseFloat(document.getElementById('alert-margin-lower').value) || null,
+    };
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(config));
+        showToast({ message: 'Alert configuration saved', severity: 'success' });
+    } else {
+        showToast({ message: 'WebSocket not connected', severity: 'danger' });
+    }
+}
+
+function clearAlerts() {
+    document.getElementById('alert-price-upper').value = '';
+    document.getElementById('alert-price-lower').value = '';
+    document.getElementById('alert-pnl-upper').value = '';
+    document.getElementById('alert-pnl-lower').value = '';
+    document.getElementById('alert-margin-lower').value = '';
+    saveAlerts();
+}
+
+function triggerAlert(alert) {
+    showToast(alert);
+    addToAlertLog(alert);
+    playAlertSound();
+}
+
+function showToast(alert) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `alert-toast ${alert.severity || 'warning'}`;
+    toast.innerHTML = `<span>${escapeHtml(alert.message)}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 6000);
+}
+
+function addToAlertLog(alert) {
+    alertLog.unshift({
+        ...alert,
+        time: new Date().toLocaleTimeString(),
+    });
+    if (alertLog.length > 100) alertLog.pop();
+    renderAlertLog();
+}
+
+function renderAlertLog() {
+    const container = document.getElementById('alert-log');
+    if (alertLog.length === 0) {
+        container.innerHTML = '<div class="empty-state">No alerts triggered yet</div>';
+        return;
+    }
+    container.innerHTML = alertLog.map(a => `
+        <div style="padding:10px 14px; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center;">
+            <span style="color:var(--text-muted); font-size:12px; white-space:nowrap;">${escapeHtml(a.time)}</span>
+            <span style="font-size:13px;">${escapeHtml(a.message)}</span>
+        </div>
+    `).join('');
+}
+
+function clearAlertLog() {
+    alertLog = [];
+    renderAlertLog();
+}
+
+function playAlertSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.value = 0.1;
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+        // Audio not supported
+    }
+}
+
+// --- Init ---
+connectWS();
+</script>
+</body>
+</html>
