@@ -135,6 +135,26 @@ async function listGroups() {
   console.log(`=== Total: ${groups.length} groups ===\n`);
 }
 
+// --- Send test message to yourself ---
+async function sendTestToSelf() {
+  try {
+    const me = await whatsapp.info.wid;
+    const myChat = await whatsapp.getChatById(me._serialized);
+
+    console.log("\n--- Sending TEST message to yourself ---");
+    for (const reminder of config.reminders) {
+      for (const pageConfig of reminder.pages) {
+        const message = buildMessage(pageConfig);
+        await myChat.sendMessage(`[TEST] Preview of blast message:\n\n${message}`);
+        console.log(`  [OK] Test message sent to your own chat`);
+      }
+    }
+    console.log("--- Check your WhatsApp to preview the message ---\n");
+  } catch (error) {
+    console.error("  [ERROR] Failed to send test:", error.message);
+  }
+}
+
 // --- Manual blast command via terminal ---
 function setupTerminalCommands() {
   const readline = require("readline");
@@ -144,7 +164,8 @@ function setupTerminalCommands() {
   });
 
   console.log("\nTerminal commands:");
-  console.log("  blast  - Send all reminders now");
+  console.log("  test   - Send a test message to yourself first");
+  console.log("  blast  - Send all reminders to groups now");
   console.log("  groups - List all your WhatsApp groups");
   console.log("  status - Show scheduled jobs");
   console.log("  quit   - Stop the bot\n");
@@ -152,7 +173,9 @@ function setupTerminalCommands() {
   rl.on("line", async (input) => {
     const cmd = input.trim().toLowerCase();
 
-    if (cmd === "blast") {
+    if (cmd === "test") {
+      await sendTestToSelf();
+    } else if (cmd === "blast") {
       console.log("\nSending all reminders now...");
       for (const reminder of config.reminders) {
         for (const pageConfig of reminder.pages) {
