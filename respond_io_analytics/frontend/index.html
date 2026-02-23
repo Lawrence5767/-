@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>respond.io Real-Time Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #222639;
+            --bg-card-hover: #2a2e44;
+            --border: #2d3148;
+            --text-primary: #e4e6f0;
+            --text-secondary: #8b8fa3;
+            --text-muted: #5d6180;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #eab308;
+            --accent-purple: #a855f7;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f97316;
+            --accent-pink: #ec4899;
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ─────────────────────────────────── */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            transition: background 0.3s;
+        }
+        .status-dot.connected { background: var(--accent-green); }
+
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .period-selector {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .period-btn {
+            padding: 6px 14px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .period-btn:hover { color: var(--text-primary); background: var(--bg-card-hover); }
+        .period-btn.active { background: var(--accent-blue); color: white; }
+
+        /* ── Live Feed ──────────────────────────────── */
+        .live-feed-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+        .feed-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .feed-items {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            flex: 1;
+            scrollbar-width: none;
+        }
+        .feed-items::-webkit-scrollbar { display: none; }
+        .feed-item {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            padding: 2px 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            animation: feedIn 0.3s ease;
+        }
+        @keyframes feedIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ── Main Content ───────────────────────────── */
+        .main { padding: 24px; max-width: 1600px; margin: 0 auto; }
+
+        /* ── KPI Cards ──────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent-blue); }
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .kpi-value.blue { color: var(--accent-blue); }
+        .kpi-value.green { color: var(--accent-green); }
+        .kpi-value.yellow { color: var(--accent-yellow); }
+        .kpi-value.purple { color: var(--accent-purple); }
+        .kpi-value.cyan { color: var(--accent-cyan); }
+        .kpi-value.red { color: var(--accent-red); }
+        .kpi-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ── Chart Sections ─────────────────────────── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .charts-grid-equal {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        .chart-container { position: relative; width: 100%; }
+        .chart-container canvas { max-height: 300px; }
+
+        /* ── Agent Table ────────────────────────────── */
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .table-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover td { background: var(--bg-card-hover); }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+        .badge-green { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+        .badge-purple { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
+
+        /* ── Tag Cloud ──────────────────────────────── */
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag-item {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(59,130,246,0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59,130,246,0.2);
+        }
+        .tag-count {
+            margin-left: 4px;
+            opacity: 0.6;
+        }
+
+        /* ── Empty State ────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state-text { font-size: 14px; }
+        .empty-state-hint { font-size: 12px; margin-top: 8px; color: var(--text-muted); }
+
+        /* ── Flash animation ────────────────────────── */
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; background: rgba(59,130,246,0.1); }
+        }
+        .flash { animation: flash 0.5s ease; }
+
+        /* ── Responsive ─────────────────────────────── */
+        @media (max-width: 768px) {
+            .charts-grid, .charts-grid-equal { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 12px; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <div class="logo">respond.io Analytics</div>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="period-selector">
+            <button class="period-btn" data-period="1h">1H</button>
+            <button class="period-btn" data-period="6h">6H</button>
+            <button class="period-btn active" data-period="24h">24H</button>
+            <button class="period-btn" data-period="7d">7D</button>
+            <button class="period-btn" data-period="30d">30D</button>
+        </div>
+    </div>
+</div>
+
+<!-- Live Feed -->
+<div class="live-feed-bar">
+    <span class="feed-label">Live</span>
+    <div class="feed-items" id="feedItems">
+        <span class="feed-item">Waiting for events...</span>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Contacts</div>
+            <div class="kpi-value blue" id="kpiContacts">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Open Conversations</div>
+            <div class="kpi-value green" id="kpiOpenConvos">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total Messages</div>
+            <div class="kpi-value purple" id="kpiMessages">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Incoming</div>
+            <div class="kpi-value cyan" id="kpiIncoming">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Outgoing</div>
+            <div class="kpi-value yellow" id="kpiOutgoing">--</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Avg Response Time</div>
+            <div class="kpi-value" id="kpiResponseTime">--</div>
+            <div class="kpi-sub" id="kpiResponseTimeSub"></div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Resolution Rate</div>
+            <div class="kpi-value green" id="kpiResolution">--</div>
+            <div class="kpi-sub" id="kpiResolutionSub"></div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1: Message Volume + Channel Distribution -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Message Volume</div>
+            <div class="chart-container">
+                <canvas id="messageVolumeChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Channel Distribution</div>
+            <div class="chart-container">
+                <canvas id="channelChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Contact Growth + Tag Distribution -->
+    <div class="charts-grid-equal">
+        <div class="chart-card">
+            <div class="chart-title">Contact Growth</div>
+            <div class="chart-container">
+                <canvas id="contactGrowthChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Tag Distribution</div>
+            <div id="tagCloud" class="tag-cloud">
+                <div class="empty-state"><div class="empty-state-text">No tag data yet</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent Performance Table -->
+    <div class="table-card">
+        <div class="table-title">Agent Performance</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Agent</th>
+                    <th>Assignments</th>
+                    <th>Messages Sent</th>
+                    <th>Conversations Closed</th>
+                </tr>
+            </thead>
+            <tbody id="agentTableBody">
+                <tr>
+                    <td colspan="4" class="empty-state">
+                        <div class="empty-state-text">No agent data yet</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Recent Messages -->
+    <div class="table-card">
+        <div class="table-title">Recent Messages</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Direction</th>
+                    <th>Channel</th>
+                    <th>Sender</th>
+                    <th>Content</th>
+                </tr>
+            </thead>
+            <tbody id="messagesTableBody">
+                <tr>
+                    <td colspan="5" class="empty-state">
+                        <div class="empty-state-text">No messages yet</div>
+                        <div class="empty-state-hint">Messages will appear here as webhook events arrive</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────
+let ws = null;
+let currentPeriod = '24h';
+let reconnectDelay = 1000;
+let charts = {};
+let recentMessages = [];
+const MAX_FEED_ITEMS = 20;
+const MAX_RECENT_MESSAGES = 50;
+
+// ── Chart.js Defaults ────────────────────────────────────────
+Chart.defaults.color = '#8b8fa3';
+Chart.defaults.borderColor = '#2d3148';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+Chart.defaults.font.size = 11;
+
+// ── Chart Colors ─────────────────────────────────────────────
+const COLORS = {
+    blue: '#3b82f6',
+    green: '#22c55e',
+    red: '#ef4444',
+    yellow: '#eab308',
+    purple: '#a855f7',
+    cyan: '#06b6d4',
+    orange: '#f97316',
+    pink: '#ec4899',
+};
+const COLOR_LIST = Object.values(COLORS);
+
+// ── WebSocket Connection ─────────────────────────────────────
+function connect() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+    ws.onopen = () => {
+        document.getElementById('statusDot').classList.add('connected');
+        document.getElementById('statusText').textContent = 'Connected';
+        reconnectDelay = 1000;
+    };
+
+    ws.onclose = () => {
+        document.getElementById('statusDot').classList.remove('connected');
+        document.getElementById('statusText').textContent = 'Reconnecting...';
+        setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+    };
+
+    ws.onerror = () => ws.close();
+
+    ws.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+            handleEvent(msg);
+        } catch (e) {
+            console.error('Failed to parse message:', e);
+        }
+    };
+}
+
+// ── Event Handler ────────────────────────────────────────────
+function handleEvent(msg) {
+    const { event, data } = msg;
+
+    switch (event) {
+        case 'snapshot':
+            renderSnapshot(data);
+            break;
+        case 'new_message':
+            addFeedItem(`New ${data.direction} message from ${data.sender_name || 'Unknown'}`);
+            addRecentMessage(data);
+            flashKPI('kpiMessages');
+            if (data.direction === 'incoming') flashKPI('kpiIncoming');
+            else flashKPI('kpiOutgoing');
+            break;
+        case 'new_contact':
+            addFeedItem(`New contact: ${data.name || 'Unknown'}`);
+            flashKPI('kpiContacts');
+            break;
+        case 'conversation_opened':
+            addFeedItem(`Conversation opened${data.assignee_name ? ' - ' + data.assignee_name : ''}`);
+            flashKPI('kpiOpenConvos');
+            break;
+        case 'conversation_closed':
+            addFeedItem(`Conversation closed${data.category ? ' [' + data.category + ']' : ''}`);
+            flashKPI('kpiOpenConvos');
+            break;
+        case 'agent_assigned':
+            addFeedItem(`Agent assigned: ${data.agent_name || 'Unknown'}`);
+            break;
+        case 'tag_updated':
+            addFeedItem('Contact tags updated');
+            break;
+        case 'new_comment':
+            addFeedItem('New comment added');
+            break;
+        case 'contacts_synced':
+            addFeedItem(`API sync: ${data.count} contacts`);
+            break;
+    }
+}
+
+// ── Render Snapshot ──────────────────────────────────────────
+function renderSnapshot(data) {
+    const o = data.overview;
+
+    // KPIs
+    setKPI('kpiContacts', formatNumber(o.total_contacts));
+    setKPI('kpiOpenConvos', formatNumber(o.open_conversations));
+    setKPI('kpiMessages', formatNumber(o.total_messages));
+    setKPI('kpiIncoming', formatNumber(o.incoming_messages));
+    setKPI('kpiOutgoing', formatNumber(o.outgoing_messages));
+
+    if (o.avg_response_time_seconds != null) {
+        setKPI('kpiResponseTime', formatDuration(o.avg_response_time_seconds));
+        document.getElementById('kpiResponseTimeSub').textContent = 'avg first response';
+    } else {
+        setKPI('kpiResponseTime', '--');
+        document.getElementById('kpiResponseTimeSub').textContent = '';
+    }
+
+    const res = o.resolution_rate;
+    setKPI('kpiResolution', res.rate + '%');
+    document.getElementById('kpiResolutionSub').textContent = `${res.closed}/${res.total} resolved`;
+
+    // Message Volume Chart
+    renderMessageVolumeChart(data.message_volume);
+
+    // Channel Distribution Chart
+    renderChannelChart(data.channel_distribution);
+
+    // Contact Growth Chart
+    renderContactGrowthChart(data.contacts_growth);
+
+    // Tag Cloud
+    renderTagCloud(data.tag_distribution);
+
+    // Agent Performance Table
+    renderAgentTable(data.agent_performance);
+}
+
+// ── Message Volume Chart ─────────────────────────────────────
+function renderMessageVolumeChart(volume) {
+    const timeKey = currentPeriod.includes('d') ? 'day' : 'hour';
+    const labels = [...new Set(volume.map(v => v[timeKey]))].sort();
+
+    const incoming = labels.map(l => {
+        const item = volume.find(v => v[timeKey] === l && v.direction === 'incoming');
+        return item ? item.count : 0;
+    });
+    const outgoing = labels.map(l => {
+        const item = volume.find(v => v[timeKey] === l && v.direction === 'outgoing');
+        return item ? item.count : 0;
+    });
+
+    const displayLabels = labels.map(l => {
+        if (timeKey === 'hour') {
+            const d = new Date(l);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        const d = new Date(l);
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    });
+
+    if (charts.messageVolume) charts.messageVolume.destroy();
+    charts.messageVolume = new Chart(document.getElementById('messageVolumeChart'), {
+        type: 'bar',
+        data: {
+            labels: displayLabels,
+            datasets: [
+                {
+                    label: 'Incoming',
+                    data: incoming,
+                    backgroundColor: COLORS.blue + '99',
+                    borderColor: COLORS.blue,
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Outgoing',
+                    data: outgoing,
+                    backgroundColor: COLORS.green + '99',
+                    borderColor: COLORS.green,
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+            },
+        },
+    });
+}
+
+// ── Channel Distribution Chart ───────────────────────────────
+function renderChannelChart(channels) {
+    if (charts.channel) charts.channel.destroy();
+
+    if (!channels.length) {
+        const ctx = document.getElementById('channelChart').getContext('2d');
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.fillStyle = '#5d6180';
+        ctx.textAlign = 'center';
+        ctx.fillText('No channel data yet', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+    }
+
+    charts.channel = new Chart(document.getElementById('channelChart'), {
+        type: 'doughnut',
+        data: {
+            labels: channels.map(c => c.channel_type),
+            datasets: [{
+                data: channels.map(c => c.count),
+                backgroundColor: channels.map((_, i) => COLOR_LIST[i % COLOR_LIST.length] + 'cc'),
+                borderColor: channels.map((_, i) => COLOR_LIST[i % COLOR_LIST.length]),
+                borderWidth: 2,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } },
+            },
+        },
+    });
+}
+
+// ── Contact Growth Chart ─────────────────────────────────────
+function renderContactGrowthChart(growth) {
+    if (charts.contactGrowth) charts.contactGrowth.destroy();
+
+    const labels = growth.map(g => {
+        const d = new Date(g.day);
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    });
+
+    // Cumulative
+    let cumulative = [];
+    let sum = 0;
+    growth.forEach(g => {
+        sum += g.count;
+        cumulative.push(sum);
+    });
+
+    charts.contactGrowth = new Chart(document.getElementById('contactGrowthChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'New Contacts',
+                data: growth.map(g => g.count),
+                borderColor: COLORS.cyan,
+                backgroundColor: COLORS.cyan + '20',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+            }, {
+                label: 'Cumulative',
+                data: cumulative,
+                borderColor: COLORS.purple,
+                borderDash: [5, 5],
+                tension: 0.4,
+                pointRadius: 2,
+                yAxisID: 'y1',
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, position: 'left', ticks: { precision: 0 } },
+                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { precision: 0 } },
+            },
+        },
+    });
+}
+
+// ── Tag Cloud ────────────────────────────────────────────────
+function renderTagCloud(tags) {
+    const el = document.getElementById('tagCloud');
+    if (!tags.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No tag data yet</div></div>';
+        return;
+    }
+    const maxCount = Math.max(...tags.map(t => t.count));
+    el.innerHTML = tags.slice(0, 30).map(t => {
+        const opacity = 0.3 + (t.count / maxCount) * 0.7;
+        return `<span class="tag-item" style="opacity:${opacity}">${t.tag}<span class="tag-count">(${t.count})</span></span>`;
+    }).join('');
+}
+
+// ── Agent Table ──────────────────────────────────────────────
+function renderAgentTable(agents) {
+    const tbody = document.getElementById('agentTableBody');
+    if (!agents.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-text">No agent data yet</div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = agents.map(a => {
+        const events = a.events || {};
+        return `<tr>
+            <td><strong>${a.agent_name || a.agent_id}</strong></td>
+            <td><span class="badge badge-blue">${events.assigned || 0}</span></td>
+            <td><span class="badge badge-green">${events.message_sent || 0}</span></td>
+            <td><span class="badge badge-purple">${events.conversation_closed || 0}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Recent Messages Table ────────────────────────────────────
+function addRecentMessage(msg) {
+    recentMessages.unshift(msg);
+    if (recentMessages.length > MAX_RECENT_MESSAGES) recentMessages.pop();
+    renderRecentMessages();
+}
+
+function renderRecentMessages() {
+    const tbody = document.getElementById('messagesTableBody');
+    if (!recentMessages.length) return;
+    tbody.innerHTML = recentMessages.slice(0, 20).map(m => {
+        const time = m.created_at ? new Date(m.created_at).toLocaleTimeString() : '--';
+        const dirClass = m.direction === 'incoming' ? 'badge-blue' : 'badge-green';
+        const content = (m.content || m.text || '').substring(0, 80);
+        return `<tr>
+            <td>${time}</td>
+            <td><span class="badge ${dirClass}">${m.direction}</span></td>
+            <td>${m.channel_type || m.channel || '--'}</td>
+            <td>${m.sender_name || '--'}</td>
+            <td>${escapeHtml(content)}${content.length >= 80 ? '...' : ''}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Live Feed ────────────────────────────────────────────────
+function addFeedItem(text) {
+    const container = document.getElementById('feedItems');
+    const item = document.createElement('span');
+    item.className = 'feed-item';
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    item.textContent = `[${now}] ${text}`;
+    container.prepend(item);
+    while (container.children.length > MAX_FEED_ITEMS) {
+        container.removeChild(container.lastChild);
+    }
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function setKPI(id, value) {
+    const el = document.getElementById(id);
+    if (el.textContent !== String(value)) {
+        el.textContent = value;
+        flashKPI(id);
+    }
+}
+
+function flashKPI(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+}
+
+function formatNumber(n) {
+    if (n == null) return '--';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toString();
+}
+
+function formatDuration(seconds) {
+    if (seconds == null) return '--';
+    if (seconds < 60) return Math.round(seconds) + 's';
+    if (seconds < 3600) return Math.round(seconds / 60) + 'm';
+    return (seconds / 3600).toFixed(1) + 'h';
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ── Period Selector ──────────────────────────────────────────
+document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPeriod = btn.dataset.period;
+        requestSnapshot();
+    });
+});
+
+function requestSnapshot() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: 'get_snapshot', period: currentPeriod }));
+    }
+}
+
+// ── Init ─────────────────────────────────────────────────────
+connect();
+</script>
+</body>
+</html>
