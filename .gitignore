@@ -4,3 +4,8 @@ __pycache__/
 *.db-shm
 *.db-wal
 .env
+
+# WhatsApp bot
+node_modules/
+whatsapp-bot/.wwebjs_auth/
+whatsapp-bot/.wwebjs_cache/
