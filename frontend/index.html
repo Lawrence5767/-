@@ -123,6 +123,48 @@
             color: var(--text-secondary);
         }
 
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .live-badge .pulse {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(16, 185, 129, 0.6); }
+            50% { opacity: 0.4; box-shadow: none; }
+        }
+
+        @keyframes priceFlash {
+            0% { background: rgba(245, 158, 11, 0.3); }
+            100% { background: transparent; }
+        }
+
+        .price-flash {
+            animation: priceFlash 0.6s ease-out;
+        }
+
+        .price-source {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 2px;
+        }
+
         /* Navigation Tabs */
         .nav-tabs {
             display: flex;
@@ -798,9 +840,10 @@
         </div>
     </div>
     <div class="header-right">
+        <span class="live-badge" id="live-badge" style="display:none;"><span class="pulse"></span> LIVE</span>
         <button class="btn btn-demo" onclick="loadDemo()">Load Demo</button>
         <div class="status-dot" id="status-dot"></div>
-        <span class="status-text" id="status-text">Waiting for MT5</span>
+        <span class="status-text" id="status-text">Connecting...</span>
         <span class="status-text" id="last-update" style="margin-left:8px;"></span>
     </div>
 </div>
@@ -824,28 +867,31 @@
         <!-- Welcome Banner (shown when no data) -->
         <div class="welcome-banner" id="welcome-banner">
             <h2>Welcome to XAU/USD Trading Tracker</h2>
-            <p>This dashboard receives live trade data from your MetaTrader 5 terminal via an Expert Advisor. Works on macOS, Linux, and Windows.</p>
-            <div style="margin-bottom: 16px;">
+            <p>Real-time XAU/USD price feed is active automatically. Import your trade history via CSV or connect MT5 for full account tracking.</p>
+            <div style="margin-bottom: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                 <button class="btn btn-demo" onclick="loadDemo()" style="font-size:14px; padding:10px 24px;">
                     Load Demo Data to Preview
+                </button>
+                <button class="btn btn-gold" onclick="document.querySelector('[data-tab=analyzer]').click()" style="font-size:14px; padding:10px 24px;">
+                    Import CSV Trade History
                 </button>
             </div>
             <div class="steps">
                 <div class="step">
-                    <div class="step-num">Step 1</div>
-                    <div class="step-text">Install the XAU_USD_Tracker EA in your MT5 terminal's Experts folder</div>
+                    <div class="step-num">Live Prices</div>
+                    <div class="step-text">Real-time XAU/USD price updates every 10 seconds from market data feed</div>
                 </div>
                 <div class="step">
-                    <div class="step-num">Step 2</div>
-                    <div class="step-text">Set the EA's ServerURL to point to this machine (e.g. http://your-mac-ip:8000)</div>
+                    <div class="step-num">CSV Import</div>
+                    <div class="step-text">Upload your MT5 or Tickmill trade history CSV for comprehensive analysis</div>
                 </div>
                 <div class="step">
-                    <div class="step-num">Step 3</div>
-                    <div class="step-text">Attach the EA to any XAUUSD chart in MT5 and enable AutoTrading</div>
+                    <div class="step-num">MT5 Link</div>
+                    <div class="step-text">Optionally connect MT5 via EA for live positions, orders, and account data</div>
                 </div>
                 <div class="step">
-                    <div class="step-num">Step 4</div>
-                    <div class="step-text">Data will flow automatically - positions, orders, history, and price updates</div>
+                    <div class="step-num">Analytics</div>
+                    <div class="step-text">Full trade analysis: equity curve, win rate, drawdowns, time-based stats</div>
                 </div>
             </div>
         </div>
@@ -1388,6 +1434,9 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT = 10;
 let alertLog = [];
 let hasData = false;
+let lastBid = null;
+let lastAsk = null;
+let priceSource = null;
 
 // --- Tab Navigation ---
 document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -1482,7 +1531,18 @@ function connectWS() {
 
         if (data.type === 'update') {
             setStatus(true);
+
+            // Show live badge if price is from live feed
+            if (data.price_source === 'live' || (data.price && data.price.source === 'gold-api.com')) {
+                priceSource = 'live';
+                document.getElementById('live-badge').style.display = '';
+            }
+
             if (data.account && data.account.login) {
+                showDataSections();
+            }
+            // Always show price even without account data
+            if (data.price && data.price.bid) {
                 showDataSections();
             }
             updatePrice(data.price);
@@ -1515,10 +1575,10 @@ function setStatus(connected) {
     const text = document.getElementById('status-text');
     if (connected) {
         dot.classList.add('connected');
-        text.textContent = 'MT5 Connected';
+        text.textContent = priceSource === 'live' ? 'Live Feed Active' : 'MT5 Connected';
     } else {
         dot.classList.remove('connected');
-        text.textContent = 'Waiting for MT5';
+        text.textContent = 'Connecting...';
     }
 }
 
@@ -1529,8 +1589,27 @@ function updateTimestamp(ts) {
 // --- Price ---
 function updatePrice(price) {
     if (!price || !price.bid) return;
-    document.getElementById('bid-price').textContent = fmt(price.bid, 2);
-    document.getElementById('ask-price').textContent = fmt(price.ask, 2);
+
+    const bidEl = document.getElementById('bid-price');
+    const askEl = document.getElementById('ask-price');
+
+    // Flash animation when price changes
+    if (lastBid !== null && price.bid !== lastBid) {
+        bidEl.classList.remove('price-flash');
+        void bidEl.offsetWidth; // trigger reflow
+        bidEl.classList.add('price-flash');
+    }
+    if (lastAsk !== null && price.ask !== lastAsk) {
+        askEl.classList.remove('price-flash');
+        void askEl.offsetWidth;
+        askEl.classList.add('price-flash');
+    }
+
+    lastBid = price.bid;
+    lastAsk = price.ask;
+
+    bidEl.textContent = fmt(price.bid, 2);
+    askEl.textContent = fmt(price.ask, 2);
     document.getElementById('spread').textContent = fmt(price.spread, 2) + ' spread';
 }
 

@@ -2,21 +2,25 @@
 XAU/USD Trading Tracker - FastAPI Backend
 Receives trade data from MT5 Expert Advisor via HTTP push.
 Supports CSV import for trade history analysis on macOS.
+Fetches real-time XAU/USD prices from free Gold-API.
 Works on macOS/Linux/Windows - no MetaTrader5 Python package needed.
 
 Architecture:
   MT5 Terminal (EA) --HTTP POST--> This Server (FastAPI) --WebSocket--> Browser Dashboard
   CSV Import (Tickmill/MT5) --> This Server --> Analysis Dashboard
+  Gold-API (Free) --> Real-time XAU/USD Price Feed --> Browser Dashboard
 """
 
 import asyncio
 import json
 import os
 import secrets
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
+import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -25,9 +29,12 @@ from pydantic import BaseModel
 
 from mt5_service import DataStore
 
+logger = logging.getLogger("tracker")
 
 # --- Configuration ---
 API_KEY = os.environ.get("TRACKER_API_KEY", "")  # Optional: protect push endpoint
+PRICE_FEED_INTERVAL = int(os.environ.get("PRICE_FEED_INTERVAL", "10"))  # seconds
+GOLD_API_URL = "https://api.gold-api.com/price/XAU"
 
 # Alert thresholds (configurable via API)
 alert_config = {
@@ -38,21 +45,94 @@ alert_config = {
     "margin_level_lower": None,
 }
 
+# Real-time price feed state
+price_feed_state = {
+    "enabled": True,
+    "last_price": None,
+    "last_update": None,
+    "errors": 0,
+    "total_updates": 0,
+}
+
 
 # --- App setup ---
 store = DataStore()
+
+
+async def _fetch_live_price():
+    """Fetch real-time XAU/USD price from Gold-API (free, no key needed)."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(GOLD_API_URL)
+        resp.raise_for_status()
+        data = resp.json()
+        # Response format: {"name":"Gold","price":2935.50,"symbol":"XAU","updatedAt":"..."}
+        price = data.get("price", 0)
+        # Gold-API returns a single price; estimate bid/ask with a typical spread
+        spread = 0.30
+        bid = round(price, 2)
+        ask = round(price + spread, 2)
+        return {
+            "symbol": "XAUUSD",
+            "bid": bid,
+            "ask": ask,
+            "spread": spread,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "source": "gold-api.com",
+        }
+
+
+async def _price_feed_loop():
+    """Background task: poll Gold-API for real-time XAU/USD price and broadcast."""
+    logger.info("[Price Feed] Starting real-time XAU/USD price feed (interval: %ds)", PRICE_FEED_INTERVAL)
+    while True:
+        try:
+            if not price_feed_state["enabled"]:
+                await asyncio.sleep(PRICE_FEED_INTERVAL)
+                continue
+
+            price_data = await _fetch_live_price()
+            price_feed_state["last_price"] = price_data
+            price_feed_state["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            price_feed_state["total_updates"] += 1
+            price_feed_state["errors"] = 0
+
+            # Update price in store
+            store.update_live_price(price_data)
+
+            # Broadcast to all WebSocket clients
+            payload = _build_ws_payload()
+            payload["price_source"] = "live"
+            await manager.broadcast(payload)
+
+        except Exception as e:
+            price_feed_state["errors"] += 1
+            logger.warning("[Price Feed] Error fetching price: %s (consecutive errors: %d)",
+                           str(e), price_feed_state["errors"])
+
+        await asyncio.sleep(PRICE_FEED_INTERVAL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("[Tracker] XAU/USD Trading Tracker started")
     print("[Tracker] Dashboard: http://localhost:8000")
-    print("[Tracker] Waiting for data from MT5 Expert Advisor...")
+    print(f"[Tracker] Real-time XAU/USD price feed: every {PRICE_FEED_INTERVAL}s from Gold-API")
     if API_KEY:
         print(f"[Tracker] API key is set - EA must send X-API-Key header")
     else:
         print("[Tracker] No API key set - push endpoint is open (set TRACKER_API_KEY env var to secure)")
+
+    # Start the background price feed
+    price_task = asyncio.create_task(_price_feed_loop())
+
     yield
+
+    # Cancel the background price feed
+    price_task.cancel()
+    try:
+        await price_task
+    except asyncio.CancelledError:
+        pass
     print("[Tracker] Shutting down")
 
 
@@ -96,10 +176,35 @@ async def root():
 @app.get("/api/status")
 async def get_status():
     return {
-        "connected": store.is_connected,
+        "connected": store.is_connected or price_feed_state["last_price"] is not None,
         "last_push": store.last_push_time,
         "mode": "ea_push",
+        "price_feed": {
+            "enabled": price_feed_state["enabled"],
+            "last_update": price_feed_state["last_update"],
+            "total_updates": price_feed_state["total_updates"],
+            "errors": price_feed_state["errors"],
+        },
     }
+
+
+@app.get("/api/price/live")
+async def get_live_price():
+    """Get the latest real-time XAU/USD price from the live feed."""
+    if price_feed_state["last_price"] is None:
+        return {"error": "Price feed not yet started. Please wait a few seconds."}
+    return {
+        **price_feed_state["last_price"],
+        "feed_enabled": price_feed_state["enabled"],
+        "total_updates": price_feed_state["total_updates"],
+    }
+
+
+@app.post("/api/price/feed")
+async def toggle_price_feed(enabled: bool = True):
+    """Enable or disable the real-time price feed."""
+    price_feed_state["enabled"] = enabled
+    return {"status": "ok", "enabled": enabled}
 
 
 # ----- EA Push Endpoint -----

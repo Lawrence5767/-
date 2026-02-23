@@ -334,6 +334,29 @@ class DataStore:
 
         conn.commit()
 
+    # ----- Live Price Update -----
+
+    def update_live_price(self, price_data: dict):
+        """Update the price table with real-time data from external API."""
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn = _get_conn()
+        conn.execute("""
+            INSERT INTO price (id, symbol, bid, ask, spread, time, updated_at)
+            VALUES (1, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                symbol=excluded.symbol, bid=excluded.bid, ask=excluded.ask,
+                spread=excluded.spread, time=excluded.time, updated_at=excluded.updated_at
+        """, (
+            price_data.get("symbol", "XAUUSD"),
+            price_data.get("bid", 0),
+            price_data.get("ask", 0),
+            price_data.get("spread", 0),
+            price_data.get("time", now),
+            now,
+        ))
+        conn.commit()
+        self._last_push = now
+
     # ----- Read methods -----
 
     def get_account_info(self) -> Optional[AccountInfo]:
