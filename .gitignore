@@ -9,3 +9,4 @@ __pycache__/
 node_modules/
 whatsapp-bot/.wwebjs_auth/
 whatsapp-bot/.wwebjs_cache/
+whatsapp-bot/config.json
