@@ -1,28 +1,31 @@
 """
 XAU/USD Trading Tracker - FastAPI Backend
-Connects to MetaTrader 5 and serves trade data via REST API + WebSocket.
+Receives trade data from MT5 Expert Advisor via HTTP push.
+Works on macOS/Linux/Windows - no MetaTrader5 Python package needed.
+
+Architecture:
+  MT5 Terminal (EA) --HTTP POST--> This Server (FastAPI) --WebSocket--> Browser Dashboard
 """
 
 import asyncio
 import json
 import os
+import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
-from mt5_service import MT5Service
+from mt5_service import DataStore
 
 
 # --- Configuration ---
-MT5_PATH = os.environ.get("MT5_PATH", "")
-MT5_LOGIN = int(os.environ.get("MT5_LOGIN", "0")) or None
-MT5_PASSWORD = os.environ.get("MT5_PASSWORD", "") or None
-MT5_SERVER = os.environ.get("MT5_SERVER", "") or None
+API_KEY = os.environ.get("TRACKER_API_KEY", "")  # Optional: protect push endpoint
 
 # Alert thresholds (configurable via API)
 alert_config = {
@@ -35,30 +38,23 @@ alert_config = {
 
 
 # --- App setup ---
-mt5 = MT5Service()
+store = DataStore()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: connect to MT5
-    try:
-        mt5.connect(
-            path=MT5_PATH if MT5_PATH else None,
-            login=MT5_LOGIN,
-            password=MT5_PASSWORD,
-            server=MT5_SERVER,
-        )
-        print("[MT5] Connected successfully")
-    except ConnectionError as e:
-        print(f"[MT5] Warning: Could not connect on startup - {e}")
-        print("[MT5] Use POST /api/connect to connect manually")
+    print("[Tracker] XAU/USD Trading Tracker started")
+    print("[Tracker] Dashboard: http://localhost:8000")
+    print("[Tracker] Waiting for data from MT5 Expert Advisor...")
+    if API_KEY:
+        print(f"[Tracker] API key is set - EA must send X-API-Key header")
+    else:
+        print("[Tracker] No API key set - push endpoint is open (set TRACKER_API_KEY env var to secure)")
     yield
-    # Shutdown
-    mt5.disconnect()
-    print("[MT5] Disconnected")
+    print("[Tracker] Shutting down")
 
 
-app = FastAPI(title="XAU/USD Trading Tracker", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="XAU/USD Trading Tracker", version="2.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,6 +69,21 @@ FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
+# --- Auth helper ---
+def verify_api_key(x_api_key: Optional[str] = None):
+    if API_KEY and x_api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+
+# --- Pydantic models for push endpoint ---
+class PushPayload(BaseModel):
+    account: Optional[dict] = None
+    price: Optional[dict] = None
+    positions: Optional[list] = None
+    orders: Optional[list] = None
+    deals: Optional[list] = None
+
+
 # --- REST Endpoints ---
 
 @app.get("/")
@@ -80,75 +91,83 @@ async def root():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
-@app.post("/api/connect")
-async def connect_mt5(
-    path: Optional[str] = None,
-    login: Optional[int] = None,
-    password: Optional[str] = None,
-    server: Optional[str] = None,
-):
-    try:
-        mt5.connect(path=path, login=login, password=password, server=server)
-        return {"status": "connected"}
-    except ConnectionError as e:
-        return {"status": "error", "message": str(e)}
-
-
 @app.get("/api/status")
 async def get_status():
-    return {"connected": mt5.is_connected}
+    return {
+        "connected": store.is_connected,
+        "last_push": store.last_push_time,
+        "mode": "ea_push",
+    }
 
+
+# ----- EA Push Endpoint -----
+
+@app.post("/api/push")
+async def push_data(payload: PushPayload, x_api_key: Optional[str] = Header(None)):
+    """Receive a snapshot of trade data from the MT5 Expert Advisor."""
+    verify_api_key(x_api_key)
+    store.push_snapshot(payload.model_dump())
+
+    # Broadcast to all connected WebSocket clients
+    data = _build_ws_payload()
+    await manager.broadcast(data)
+
+    return {"status": "ok", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+
+# ----- Demo Data -----
+
+@app.post("/api/demo")
+async def load_demo():
+    """Load sample demo data for testing the dashboard."""
+    result = store.load_demo_data()
+
+    # Broadcast to all connected WebSocket clients
+    data = _build_ws_payload()
+    await manager.broadcast(data)
+
+    return result
+
+
+# ----- Read Endpoints -----
 
 @app.get("/api/account")
 async def get_account():
-    try:
-        info = mt5.get_account_info()
-        return info.to_dict()
-    except RuntimeError as e:
-        return {"error": str(e)}
+    info = store.get_account_info()
+    if info is None:
+        return {"error": "No account data yet. Waiting for MT5 EA push."}
+    return info.to_dict()
 
 
 @app.get("/api/price")
 async def get_price():
-    try:
-        return mt5.get_symbol_price()
-    except RuntimeError as e:
-        return {"error": str(e)}
+    price = store.get_symbol_price()
+    if price is None:
+        return {"error": "No price data yet. Waiting for MT5 EA push."}
+    return price
 
 
 @app.get("/api/positions")
 async def get_positions():
-    try:
-        positions = mt5.get_open_positions()
-        return {"positions": [p.to_dict() for p in positions]}
-    except RuntimeError as e:
-        return {"error": str(e)}
+    positions = store.get_open_positions()
+    return {"positions": [p.to_dict() for p in positions]}
 
 
 @app.get("/api/orders")
 async def get_orders():
-    try:
-        orders = mt5.get_pending_orders()
-        return {"orders": [o.to_dict() for o in orders]}
-    except RuntimeError as e:
-        return {"error": str(e)}
+    orders = store.get_pending_orders()
+    return {"orders": [o.to_dict() for o in orders]}
 
 
 @app.get("/api/history")
 async def get_history(days: int = Query(default=30, ge=1, le=365)):
-    try:
-        deals = mt5.get_trade_history(days)
-        return {"deals": [d.to_dict() for d in deals], "count": len(deals)}
-    except RuntimeError as e:
-        return {"error": str(e)}
+    deals = store.get_trade_history(days)
+    return {"deals": [d.to_dict() for d in deals], "count": len(deals)}
 
 
 @app.get("/api/analytics")
 async def get_analytics(days: int = Query(default=30, ge=1, le=365)):
-    try:
-        return mt5.compute_analytics(days)
-    except RuntimeError as e:
-        return {"error": str(e)}
+    return store.compute_analytics(days)
 
 
 @app.get("/api/alerts")
@@ -183,7 +202,8 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
     async def broadcast(self, data: dict):
         dead = []
@@ -193,10 +213,32 @@ class ConnectionManager:
             except Exception:
                 dead.append(conn)
         for conn in dead:
-            self.active_connections.remove(conn)
+            if conn in self.active_connections:
+                self.active_connections.remove(conn)
 
 
 manager = ConnectionManager()
+
+
+def _build_ws_payload() -> dict:
+    """Build a WebSocket payload from current store data."""
+    price_data = store.get_symbol_price() or {}
+    positions = [p.to_dict() for p in store.get_open_positions()]
+    orders = [o.to_dict() for o in store.get_pending_orders()]
+    acct_info = store.get_account_info()
+    account = acct_info.to_dict() if acct_info else {}
+
+    alerts = check_alerts(price_data, positions, account)
+
+    return {
+        "type": "update",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "price": price_data,
+        "positions": positions,
+        "orders": orders,
+        "account": account,
+        "alerts": alerts,
+    }
 
 
 def check_alerts(price_data: dict, positions: list, account: dict) -> list[dict]:
@@ -248,46 +290,38 @@ def check_alerts(price_data: dict, positions: list, account: dict) -> list[dict]
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
+        # Send current state immediately on connect
+        data = _build_ws_payload()
+        await websocket.send_json(data)
+
         while True:
-            # Gather all data
+            # Listen for messages from the client (alert config updates)
             try:
-                price_data = mt5.get_symbol_price()
-                positions = [p.to_dict() for p in mt5.get_open_positions()]
-                orders = [o.to_dict() for o in mt5.get_pending_orders()]
-                account = mt5.get_account_info().to_dict()
-
-                alerts = check_alerts(price_data, positions, account)
-
-                payload = {
-                    "type": "update",
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "price": price_data,
-                    "positions": positions,
-                    "orders": orders,
-                    "account": account,
-                    "alerts": alerts,
-                }
-            except Exception as e:
-                payload = {
-                    "type": "error",
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "message": str(e),
-                }
-
-            await websocket.send_json(payload)
-
-            # Check for incoming messages (alert config updates, etc.)
-            try:
-                msg = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                msg = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
                 data = json.loads(msg)
                 if data.get("action") == "set_alerts":
                     for key in alert_config:
                         if key in data:
                             alert_config[key] = data[key]
-                    await websocket.send_json({"type": "alert_config_updated", "alerts": alert_config})
+                    await websocket.send_json({
+                        "type": "alert_config_updated",
+                        "alerts": alert_config,
+                    })
+                elif data.get("action") == "refresh":
+                    # Client requesting a refresh
+                    payload = _build_ws_payload()
+                    await websocket.send_json(payload)
             except asyncio.TimeoutError:
-                pass
-
+                # Send periodic heartbeat with current data
+                if store.is_connected:
+                    payload = _build_ws_payload()
+                    await websocket.send_json(payload)
+                else:
+                    await websocket.send_json({
+                        "type": "status",
+                        "connected": False,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    })
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 

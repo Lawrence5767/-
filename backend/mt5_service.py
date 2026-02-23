@@ -1,22 +1,43 @@
 """
-MetaTrader 5 Service Layer
-Handles all communication with the MT5 terminal for XAU/USD tracking.
+XAU/USD Trading Tracker - Data Store Service
+Stores all trade data pushed from the MT5 Expert Advisor in SQLite.
+Works on macOS/Linux/Windows - no MetaTrader5 Python package needed.
 """
 
-import MetaTrader5 as mt5
+import sqlite3
+import json
+import os
+import threading
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from typing import Optional
 
 
-SYMBOL = "XAUUSD"
+DB_PATH = os.path.join(os.path.dirname(__file__), "tracker.db")
 
+# Thread-local storage for SQLite connections
+_local = threading.local()
+
+
+def _get_conn() -> sqlite3.Connection:
+    """Get a thread-local SQLite connection."""
+    if not hasattr(_local, "conn") or _local.conn is None:
+        _local.conn = sqlite3.connect(DB_PATH)
+        _local.conn.row_factory = sqlite3.Row
+        _local.conn.execute("PRAGMA journal_mode=WAL")
+        _local.conn.execute("PRAGMA foreign_keys=ON")
+    return _local.conn
+
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
 
 @dataclass
 class PositionInfo:
     ticket: int
     symbol: str
-    type: str  # "BUY" or "SELL"
+    type: str
     volume: float
     open_price: float
     current_price: float
@@ -65,7 +86,7 @@ class DealInfo:
     time: str
     magic: int
     comment: str
-    entry: str  # "IN", "OUT", "INOUT"
+    entry: str
 
     def to_dict(self):
         return asdict(self)
@@ -88,170 +109,296 @@ class AccountInfo:
         return asdict(self)
 
 
-ORDER_TYPE_MAP = {
-    mt5.ORDER_TYPE_BUY: "BUY",
-    mt5.ORDER_TYPE_SELL: "SELL",
-    mt5.ORDER_TYPE_BUY_LIMIT: "BUY_LIMIT",
-    mt5.ORDER_TYPE_SELL_LIMIT: "SELL_LIMIT",
-    mt5.ORDER_TYPE_BUY_STOP: "BUY_STOP",
-    mt5.ORDER_TYPE_SELL_STOP: "SELL_STOP",
-    mt5.ORDER_TYPE_BUY_STOP_LIMIT: "BUY_STOP_LIMIT",
-    mt5.ORDER_TYPE_SELL_STOP_LIMIT: "SELL_STOP_LIMIT",
-}
+# ---------------------------------------------------------------------------
+# DataStore
+# ---------------------------------------------------------------------------
 
-DEAL_TYPE_MAP = {
-    mt5.DEAL_TYPE_BUY: "BUY",
-    mt5.DEAL_TYPE_SELL: "SELL",
-    mt5.DEAL_TYPE_BALANCE: "BALANCE",
-    mt5.DEAL_TYPE_CREDIT: "CREDIT",
-    mt5.DEAL_TYPE_CHARGE: "CHARGE",
-    mt5.DEAL_TYPE_CORRECTION: "CORRECTION",
-}
+class DataStore:
+    """SQLite-backed data store for XAU/USD trade data pushed from MT5 EA."""
 
-DEAL_ENTRY_MAP = {
-    mt5.DEAL_ENTRY_IN: "IN",
-    mt5.DEAL_ENTRY_OUT: "OUT",
-    mt5.DEAL_ENTRY_INOUT: "INOUT",
-    mt5.DEAL_ENTRY_OUT_BY: "OUT_BY",
-}
-
-
-def _format_time(timestamp: int) -> str:
-    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-
-
-class MT5Service:
     def __init__(self):
-        self._connected = False
+        self._last_push: Optional[str] = None
+        self._init_db()
 
-    def connect(self, path: Optional[str] = None, login: Optional[int] = None,
-                password: Optional[str] = None, server: Optional[str] = None) -> bool:
-        kwargs = {}
-        if path:
-            kwargs["path"] = path
-        if login:
-            kwargs["login"] = login
-        if password:
-            kwargs["password"] = password
-        if server:
-            kwargs["server"] = server
+    def _init_db(self):
+        conn = _get_conn()
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS account (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                login INTEGER,
+                balance REAL,
+                equity REAL,
+                margin REAL,
+                free_margin REAL,
+                margin_level REAL,
+                profit REAL,
+                currency TEXT,
+                server TEXT,
+                name TEXT,
+                updated_at TEXT
+            );
 
-        if not mt5.initialize(**kwargs):
-            error = mt5.last_error()
-            raise ConnectionError(f"MT5 initialization failed: {error}")
+            CREATE TABLE IF NOT EXISTS price (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                symbol TEXT,
+                bid REAL,
+                ask REAL,
+                spread REAL,
+                time TEXT,
+                updated_at TEXT
+            );
 
-        self._connected = True
-        return True
+            CREATE TABLE IF NOT EXISTS positions (
+                ticket INTEGER PRIMARY KEY,
+                symbol TEXT,
+                type TEXT,
+                volume REAL,
+                open_price REAL,
+                current_price REAL,
+                sl REAL,
+                tp REAL,
+                profit REAL,
+                swap REAL,
+                commission REAL,
+                open_time TEXT,
+                magic INTEGER,
+                comment TEXT,
+                updated_at TEXT
+            );
 
-    def disconnect(self):
-        mt5.shutdown()
-        self._connected = False
+            CREATE TABLE IF NOT EXISTS orders (
+                ticket INTEGER PRIMARY KEY,
+                symbol TEXT,
+                type TEXT,
+                volume REAL,
+                price REAL,
+                sl REAL,
+                tp REAL,
+                time_setup TEXT,
+                magic INTEGER,
+                comment TEXT,
+                updated_at TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS deals (
+                ticket INTEGER PRIMARY KEY,
+                deal_order INTEGER,
+                symbol TEXT,
+                type TEXT,
+                volume REAL,
+                price REAL,
+                profit REAL,
+                swap REAL,
+                commission REAL,
+                fee REAL,
+                time TEXT,
+                magic INTEGER,
+                comment TEXT,
+                entry TEXT,
+                updated_at TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_deals_time ON deals(time);
+            CREATE INDEX IF NOT EXISTS idx_deals_entry ON deals(entry);
+        """)
+        conn.commit()
 
     @property
     def is_connected(self) -> bool:
-        if not self._connected:
+        if self._last_push is None:
             return False
-        terminal = mt5.terminal_info()
-        return terminal is not None
+        try:
+            last = datetime.fromisoformat(self._last_push)
+            return (datetime.now() - last).total_seconds() < 30
+        except (ValueError, TypeError):
+            return False
 
-    def get_account_info(self) -> AccountInfo:
-        info = mt5.account_info()
-        if info is None:
-            raise RuntimeError("Failed to get account info")
+    @property
+    def last_push_time(self) -> Optional[str]:
+        return self._last_push
+
+    # ----- Ingest from EA -----
+
+    def push_snapshot(self, data: dict):
+        """
+        Accept a full snapshot from the EA containing:
+        - account: {...}
+        - price: {...}
+        - positions: [...]
+        - orders: [...]
+        - deals: [...] (optional, for history)
+        """
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._last_push = now
+        conn = _get_conn()
+
+        # Account
+        acct = data.get("account")
+        if acct:
+            conn.execute("""
+                INSERT INTO account (id, login, balance, equity, margin, free_margin,
+                    margin_level, profit, currency, server, name, updated_at)
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    login=excluded.login, balance=excluded.balance, equity=excluded.equity,
+                    margin=excluded.margin, free_margin=excluded.free_margin,
+                    margin_level=excluded.margin_level, profit=excluded.profit,
+                    currency=excluded.currency, server=excluded.server,
+                    name=excluded.name, updated_at=excluded.updated_at
+            """, (
+                acct.get("login", 0), acct.get("balance", 0), acct.get("equity", 0),
+                acct.get("margin", 0), acct.get("free_margin", 0),
+                acct.get("margin_level", 0), acct.get("profit", 0),
+                acct.get("currency", "USD"), acct.get("server", ""),
+                acct.get("name", ""), now,
+            ))
+
+        # Price
+        price = data.get("price")
+        if price:
+            conn.execute("""
+                INSERT INTO price (id, symbol, bid, ask, spread, time, updated_at)
+                VALUES (1, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    symbol=excluded.symbol, bid=excluded.bid, ask=excluded.ask,
+                    spread=excluded.spread, time=excluded.time, updated_at=excluded.updated_at
+            """, (
+                price.get("symbol", "XAUUSD"), price.get("bid", 0),
+                price.get("ask", 0), price.get("spread", 0),
+                price.get("time", now), now,
+            ))
+
+        # Positions - replace all
+        positions = data.get("positions")
+        if positions is not None:
+            conn.execute("DELETE FROM positions")
+            for p in positions:
+                conn.execute("""
+                    INSERT INTO positions (ticket, symbol, type, volume, open_price,
+                        current_price, sl, tp, profit, swap, commission, open_time,
+                        magic, comment, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    p.get("ticket", 0), p.get("symbol", "XAUUSD"),
+                    p.get("type", ""), p.get("volume", 0),
+                    p.get("open_price", 0), p.get("current_price", 0),
+                    p.get("sl", 0), p.get("tp", 0),
+                    p.get("profit", 0), p.get("swap", 0),
+                    p.get("commission", 0), p.get("open_time", now),
+                    p.get("magic", 0), p.get("comment", ""), now,
+                ))
+
+        # Orders - replace all
+        orders = data.get("orders")
+        if orders is not None:
+            conn.execute("DELETE FROM orders")
+            for o in orders:
+                conn.execute("""
+                    INSERT INTO orders (ticket, symbol, type, volume, price,
+                        sl, tp, time_setup, magic, comment, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    o.get("ticket", 0), o.get("symbol", "XAUUSD"),
+                    o.get("type", ""), o.get("volume", 0),
+                    o.get("price", 0), o.get("sl", 0), o.get("tp", 0),
+                    o.get("time_setup", now), o.get("magic", 0),
+                    o.get("comment", ""), now,
+                ))
+
+        # Deals (append/upsert)
+        deals = data.get("deals")
+        if deals:
+            for d in deals:
+                conn.execute("""
+                    INSERT INTO deals (ticket, deal_order, symbol, type, volume,
+                        price, profit, swap, commission, fee, time, magic,
+                        comment, entry, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(ticket) DO UPDATE SET
+                        profit=excluded.profit, swap=excluded.swap,
+                        commission=excluded.commission, fee=excluded.fee,
+                        updated_at=excluded.updated_at
+                """, (
+                    d.get("ticket", 0), d.get("order", 0),
+                    d.get("symbol", "XAUUSD"), d.get("type", ""),
+                    d.get("volume", 0), d.get("price", 0),
+                    d.get("profit", 0), d.get("swap", 0),
+                    d.get("commission", 0), d.get("fee", 0),
+                    d.get("time", now), d.get("magic", 0),
+                    d.get("comment", ""), d.get("entry", ""), now,
+                ))
+
+        conn.commit()
+
+    # ----- Read methods -----
+
+    def get_account_info(self) -> Optional[AccountInfo]:
+        conn = _get_conn()
+        row = conn.execute("SELECT * FROM account WHERE id = 1").fetchone()
+        if not row:
+            return None
         return AccountInfo(
-            login=info.login,
-            balance=info.balance,
-            equity=info.equity,
-            margin=info.margin,
-            free_margin=info.margin_free,
-            margin_level=info.margin_level if info.margin_level else 0.0,
-            profit=info.profit,
-            currency=info.currency,
-            server=info.server,
-            name=info.name,
+            login=row["login"], balance=row["balance"], equity=row["equity"],
+            margin=row["margin"], free_margin=row["free_margin"],
+            margin_level=row["margin_level"], profit=row["profit"],
+            currency=row["currency"], server=row["server"], name=row["name"],
         )
 
-    def get_symbol_price(self) -> dict:
-        tick = mt5.symbol_info_tick(SYMBOL)
-        if tick is None:
-            raise RuntimeError(f"Failed to get tick for {SYMBOL}")
+    def get_symbol_price(self) -> Optional[dict]:
+        conn = _get_conn()
+        row = conn.execute("SELECT * FROM price WHERE id = 1").fetchone()
+        if not row:
+            return None
         return {
-            "symbol": SYMBOL,
-            "bid": tick.bid,
-            "ask": tick.ask,
-            "spread": round(tick.ask - tick.bid, 2),
-            "time": _format_time(tick.time),
+            "symbol": row["symbol"],
+            "bid": row["bid"],
+            "ask": row["ask"],
+            "spread": row["spread"],
+            "time": row["time"],
         }
 
     def get_open_positions(self) -> list[PositionInfo]:
-        positions = mt5.positions_get(symbol=SYMBOL)
-        if positions is None:
-            return []
-        result = []
-        for p in positions:
-            result.append(PositionInfo(
-                ticket=p.ticket,
-                symbol=p.symbol,
-                type="BUY" if p.type == mt5.ORDER_TYPE_BUY else "SELL",
-                volume=p.volume,
-                open_price=p.price_open,
-                current_price=p.price_current,
-                sl=p.sl,
-                tp=p.tp,
-                profit=p.profit,
-                swap=p.swap,
-                commission=p.commission if hasattr(p, 'commission') else 0.0,
-                open_time=_format_time(p.time),
-                magic=p.magic,
-                comment=p.comment,
-            ))
-        return result
+        conn = _get_conn()
+        rows = conn.execute("SELECT * FROM positions ORDER BY open_time DESC").fetchall()
+        return [
+            PositionInfo(
+                ticket=r["ticket"], symbol=r["symbol"], type=r["type"],
+                volume=r["volume"], open_price=r["open_price"],
+                current_price=r["current_price"], sl=r["sl"], tp=r["tp"],
+                profit=r["profit"], swap=r["swap"], commission=r["commission"],
+                open_time=r["open_time"], magic=r["magic"], comment=r["comment"],
+            )
+            for r in rows
+        ]
 
     def get_pending_orders(self) -> list[OrderInfo]:
-        orders = mt5.orders_get(symbol=SYMBOL)
-        if orders is None:
-            return []
-        result = []
-        for o in orders:
-            result.append(OrderInfo(
-                ticket=o.ticket,
-                symbol=o.symbol,
-                type=ORDER_TYPE_MAP.get(o.type, f"UNKNOWN({o.type})"),
-                volume=o.volume_current,
-                price=o.price_open,
-                sl=o.sl,
-                tp=o.tp,
-                time_setup=_format_time(o.time_setup),
-                magic=o.magic,
-                comment=o.comment,
-            ))
-        return result
+        conn = _get_conn()
+        rows = conn.execute("SELECT * FROM orders ORDER BY time_setup DESC").fetchall()
+        return [
+            OrderInfo(
+                ticket=r["ticket"], symbol=r["symbol"], type=r["type"],
+                volume=r["volume"], price=r["price"], sl=r["sl"], tp=r["tp"],
+                time_setup=r["time_setup"], magic=r["magic"], comment=r["comment"],
+            )
+            for r in rows
+        ]
 
     def get_trade_history(self, days: int = 30) -> list[DealInfo]:
-        date_from = datetime.now() - timedelta(days=days)
-        date_to = datetime.now()
-        deals = mt5.history_deals_get(date_from, date_to, group=f"*{SYMBOL}*")
-        if deals is None:
-            return []
-        result = []
-        for d in deals:
-            result.append(DealInfo(
-                ticket=d.ticket,
-                order=d.order,
-                symbol=d.symbol,
-                type=DEAL_TYPE_MAP.get(d.type, f"UNKNOWN({d.type})"),
-                volume=d.volume,
-                price=d.price,
-                profit=d.profit,
-                swap=d.swap,
-                commission=d.commission,
-                fee=d.fee,
-                time=_format_time(d.time),
-                magic=d.magic,
-                comment=d.comment,
-                entry=DEAL_ENTRY_MAP.get(d.entry, f"UNKNOWN({d.entry})"),
-            ))
-        return result
+        conn = _get_conn()
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        rows = conn.execute(
+            "SELECT * FROM deals WHERE time >= ? ORDER BY time DESC", (cutoff,)
+        ).fetchall()
+        return [
+            DealInfo(
+                ticket=r["ticket"], order=r["deal_order"], symbol=r["symbol"],
+                type=r["type"], volume=r["volume"], price=r["price"],
+                profit=r["profit"], swap=r["swap"], commission=r["commission"],
+                fee=r["fee"], time=r["time"], magic=r["magic"],
+                comment=r["comment"], entry=r["entry"],
+            )
+            for r in rows
+        ]
 
     def compute_analytics(self, days: int = 30) -> dict:
         deals = self.get_trade_history(days)
@@ -259,23 +406,12 @@ class MT5Service:
 
         if not closing_deals:
             return {
-                "total_trades": 0,
-                "winning_trades": 0,
-                "losing_trades": 0,
-                "win_rate": 0.0,
-                "total_profit": 0.0,
-                "total_loss": 0.0,
-                "net_pnl": 0.0,
-                "avg_profit": 0.0,
-                "avg_loss": 0.0,
-                "profit_factor": 0.0,
-                "largest_win": 0.0,
-                "largest_loss": 0.0,
-                "total_volume": 0.0,
-                "total_commission": 0.0,
-                "total_swap": 0.0,
-                "max_drawdown": 0.0,
-                "period_days": days,
+                "total_trades": 0, "winning_trades": 0, "losing_trades": 0,
+                "win_rate": 0.0, "total_profit": 0.0, "total_loss": 0.0,
+                "net_pnl": 0.0, "avg_profit": 0.0, "avg_loss": 0.0,
+                "profit_factor": 0.0, "largest_win": 0.0, "largest_loss": 0.0,
+                "total_volume": 0.0, "total_commission": 0.0, "total_swap": 0.0,
+                "max_drawdown": 0.0, "period_days": days,
             }
 
         winners = [d for d in closing_deals if d.profit > 0]
@@ -285,11 +421,10 @@ class MT5Service:
         total_loss = abs(sum(d.profit for d in losers))
         net_pnl = sum(d.profit for d in closing_deals)
 
-        # Calculate max drawdown from cumulative P&L
         cumulative = 0.0
         peak = 0.0
         max_dd = 0.0
-        for d in closing_deals:
+        for d in sorted(closing_deals, key=lambda x: x.time):
             cumulative += d.profit
             if cumulative > peak:
                 peak = cumulative
@@ -301,7 +436,7 @@ class MT5Service:
             "total_trades": len(closing_deals),
             "winning_trades": len(winners),
             "losing_trades": len(losers),
-            "win_rate": round(len(winners) / len(closing_deals) * 100, 2) if closing_deals else 0.0,
+            "win_rate": round(len(winners) / len(closing_deals) * 100, 2),
             "total_profit": round(total_profit, 2),
             "total_loss": round(total_loss, 2),
             "net_pnl": round(net_pnl, 2),
@@ -316,3 +451,139 @@ class MT5Service:
             "max_drawdown": round(max_dd, 2),
             "period_days": days,
         }
+
+    # ----- Demo data -----
+
+    def load_demo_data(self):
+        """Load sample data for testing the dashboard without a live MT5 connection."""
+        import random
+        now = datetime.now()
+
+        demo = {
+            "account": {
+                "login": 12345678,
+                "balance": 10000.00,
+                "equity": 10245.80,
+                "margin": 1520.00,
+                "free_margin": 8725.80,
+                "margin_level": 674.07,
+                "profit": 245.80,
+                "currency": "USD",
+                "server": "Demo-Server",
+                "name": "Demo Account",
+            },
+            "price": {
+                "symbol": "XAUUSD",
+                "bid": 2935.45,
+                "ask": 2935.75,
+                "spread": 0.30,
+                "time": now.strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            "positions": [
+                {
+                    "ticket": 100001,
+                    "symbol": "XAUUSD",
+                    "type": "BUY",
+                    "volume": 0.10,
+                    "open_price": 2920.50,
+                    "current_price": 2935.45,
+                    "sl": 2910.00,
+                    "tp": 2960.00,
+                    "profit": 149.50,
+                    "swap": -2.30,
+                    "commission": -3.50,
+                    "open_time": (now - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "magic": 0,
+                    "comment": "Manual trade",
+                },
+                {
+                    "ticket": 100002,
+                    "symbol": "XAUUSD",
+                    "type": "SELL",
+                    "volume": 0.05,
+                    "open_price": 2940.20,
+                    "current_price": 2935.75,
+                    "sl": 2955.00,
+                    "tp": 2910.00,
+                    "profit": 22.25,
+                    "swap": -1.10,
+                    "commission": -1.75,
+                    "open_time": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "magic": 0,
+                    "comment": "",
+                },
+            ],
+            "orders": [
+                {
+                    "ticket": 200001,
+                    "symbol": "XAUUSD",
+                    "type": "BUY_LIMIT",
+                    "volume": 0.10,
+                    "price": 2900.00,
+                    "sl": 2885.00,
+                    "tp": 2950.00,
+                    "time_setup": (now - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "magic": 0,
+                    "comment": "Pullback entry",
+                },
+            ],
+            "deals": [],
+        }
+
+        # Generate 30 days of deal history
+        for i in range(50):
+            days_ago = random.randint(0, 29)
+            hours_ago = random.randint(0, 23)
+            deal_time = now - timedelta(days=days_ago, hours=hours_ago)
+            is_buy = random.choice([True, False])
+            is_winner = random.random() < 0.55
+            volume = round(random.choice([0.01, 0.02, 0.05, 0.10, 0.20]), 2)
+            base_price = 2900 + random.uniform(-50, 50)
+
+            # Entry deal
+            demo["deals"].append({
+                "ticket": 300000 + i * 2,
+                "order": 400000 + i,
+                "symbol": "XAUUSD",
+                "type": "BUY" if is_buy else "SELL",
+                "volume": volume,
+                "price": round(base_price, 2),
+                "profit": 0.0,
+                "swap": 0.0,
+                "commission": round(-volume * 35, 2),
+                "fee": 0.0,
+                "time": deal_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "magic": 0,
+                "comment": "",
+                "entry": "IN",
+            })
+
+            # Exit deal
+            if is_winner:
+                pnl = round(random.uniform(20, 300) * volume * 10, 2)
+            else:
+                pnl = round(-random.uniform(15, 250) * volume * 10, 2)
+
+            exit_time = deal_time + timedelta(minutes=random.randint(5, 480))
+            exit_price = base_price + (pnl / (volume * 100))
+
+            demo["deals"].append({
+                "ticket": 300000 + i * 2 + 1,
+                "order": 400000 + i,
+                "symbol": "XAUUSD",
+                "type": "SELL" if is_buy else "BUY",
+                "volume": volume,
+                "price": round(exit_price, 2),
+                "profit": pnl,
+                "swap": round(random.uniform(-5, 0), 2),
+                "commission": round(-volume * 35, 2),
+                "fee": 0.0,
+                "time": exit_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "magic": 0,
+                "comment": "",
+                "entry": "OUT",
+            })
+
+        self.push_snapshot(demo)
+        return {"status": "demo_loaded", "positions": len(demo["positions"]),
+                "orders": len(demo["orders"]), "deals": len(demo["deals"])}

@@ -28,7 +28,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
@@ -73,9 +73,7 @@
             border: 1px solid var(--border);
         }
 
-        .price-bid, .price-ask {
-            text-align: center;
-        }
+        .price-bid, .price-ask { text-align: center; }
 
         .price-label {
             font-size: 10px;
@@ -112,9 +110,13 @@
             height: 8px;
             border-radius: 50%;
             background: var(--red);
+            transition: background 0.3s;
         }
 
-        .status-dot.connected { background: var(--green); }
+        .status-dot.connected {
+            background: var(--green);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
 
         .status-text {
             font-size: 13px;
@@ -138,6 +140,7 @@
             cursor: pointer;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
+            user-select: none;
         }
 
         .nav-tab:hover { color: var(--text-secondary); }
@@ -163,7 +166,10 @@
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 16px;
+            transition: border-color 0.2s;
         }
+
+        .account-card:hover { border-color: var(--gold-dim); }
 
         .account-card-label {
             font-size: 11px;
@@ -236,6 +242,8 @@
             font-weight: 600;
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
         }
 
         .data-table td {
@@ -245,7 +253,6 @@
         }
 
         .data-table tr:last-child td { border-bottom: none; }
-
         .data-table tr:hover td { background: var(--bg-card-hover); }
 
         .type-buy { color: var(--green); font-weight: 600; }
@@ -298,9 +305,7 @@
         }
 
         /* Analytics Bar Chart */
-        .pnl-bar-chart {
-            padding: 18px;
-        }
+        .pnl-bar-chart { padding: 18px; }
 
         .bar-row {
             display: flex;
@@ -376,9 +381,7 @@
             border-color: var(--gold);
         }
 
-        .alert-input-group input::placeholder {
-            color: var(--text-muted);
-        }
+        .alert-input-group input::placeholder { color: var(--text-muted); }
 
         .btn {
             padding: 8px 20px;
@@ -407,6 +410,15 @@
             border-color: var(--text-muted);
             color: var(--text-primary);
         }
+
+        .btn-demo {
+            background: var(--purple);
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 14px;
+        }
+
+        .btn-demo:hover { opacity: 0.85; }
 
         /* Alert Toast */
         .alert-toast-container {
@@ -449,6 +461,7 @@
             gap: 12px;
             padding: 12px 18px;
             border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
         }
 
         .filter-bar select, .filter-bar input {
@@ -479,14 +492,56 @@
         ::-webkit-scrollbar-track { background: var(--bg-primary); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header { flex-direction: column; gap: 12px; padding: 12px; }
-            .price-display { width: 100%; justify-content: center; }
-            .main { padding: 12px; }
-            .account-cards { grid-template-columns: repeat(2, 1fr); }
-            .analytics-grid { grid-template-columns: 1fr; }
-            .nav-tabs { overflow-x: auto; padding: 0 12px; }
+        /* Welcome banner */
+        .welcome-banner {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .welcome-banner h2 {
+            color: var(--gold);
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .welcome-banner p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto 16px;
+        }
+
+        .welcome-banner .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            text-align: left;
+        }
+
+        .welcome-banner .step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .welcome-banner .step-num {
+            color: var(--gold);
+            font-weight: 700;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .welcome-banner .step-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         /* Win rate donut */
@@ -549,6 +604,17 @@
             height: 10px;
             border-radius: 50%;
         }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 12px; padding: 12px; }
+            .price-display { width: 100%; justify-content: center; }
+            .main { padding: 12px; }
+            .account-cards { grid-template-columns: repeat(2, 1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
+            .nav-tabs { overflow-x: auto; padding: 0 12px; }
+            .welcome-banner .steps { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -570,8 +636,9 @@
         </div>
     </div>
     <div class="header-right">
+        <button class="btn btn-demo" onclick="loadDemo()">Load Demo</button>
         <div class="status-dot" id="status-dot"></div>
-        <span class="status-text" id="status-text">Disconnected</span>
+        <span class="status-text" id="status-text">Waiting for MT5</span>
         <span class="status-text" id="last-update" style="margin-left:8px;"></span>
     </div>
 </div>
@@ -591,8 +658,37 @@
 <div class="main">
     <!-- ===== DASHBOARD TAB ===== -->
     <div class="tab-content active" id="tab-dashboard">
+        <!-- Welcome Banner (shown when no data) -->
+        <div class="welcome-banner" id="welcome-banner">
+            <h2>Welcome to XAU/USD Trading Tracker</h2>
+            <p>This dashboard receives live trade data from your MetaTrader 5 terminal via an Expert Advisor. Works on macOS, Linux, and Windows.</p>
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-demo" onclick="loadDemo()" style="font-size:14px; padding:10px 24px;">
+                    Load Demo Data to Preview
+                </button>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">Step 1</div>
+                    <div class="step-text">Install the XAU_USD_Tracker EA in your MT5 terminal's Experts folder</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 2</div>
+                    <div class="step-text">Set the EA's ServerURL to point to this machine (e.g. http://your-mac-ip:8000)</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 3</div>
+                    <div class="step-text">Attach the EA to any XAUUSD chart in MT5 and enable AutoTrading</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 4</div>
+                    <div class="step-text">Data will flow automatically - positions, orders, history, and price updates</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Account Overview -->
-        <div class="account-cards">
+        <div class="account-cards" id="account-section" style="display:none;">
             <div class="account-card">
                 <div class="account-card-label">Balance</div>
                 <div class="account-card-value" id="acct-balance">--</div>
@@ -620,7 +716,7 @@
         </div>
 
         <!-- Open Positions Summary -->
-        <div class="panel">
+        <div class="panel" id="dash-positions-panel" style="display:none;">
             <div class="panel-header">
                 <span class="panel-title">Open XAU/USD Positions</span>
                 <span class="panel-badge" id="pos-count">0</span>
@@ -648,7 +744,7 @@
         </div>
 
         <!-- Pending Orders Summary -->
-        <div class="panel">
+        <div class="panel" id="dash-orders-panel" style="display:none;">
             <div class="panel-header">
                 <span class="panel-title">Pending Orders</span>
                 <span class="panel-badge" id="order-count">0</span>
@@ -763,7 +859,7 @@
                 </select>
                 <button class="btn btn-gold" onclick="loadHistory()">Refresh</button>
             </div>
-            <div class="panel-body">
+            <div class="panel-body" style="max-height: 600px; overflow-y: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -781,7 +877,7 @@
                         </tr>
                     </thead>
                     <tbody id="history-body">
-                        <tr><td colspan="11" class="empty-state">Loading history...</td></tr>
+                        <tr><td colspan="11" class="empty-state">Click Refresh to load history</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -932,11 +1028,11 @@
                 <div class="alerts-config">
                     <div class="alert-input-group">
                         <label>Price Upper Threshold</label>
-                        <input type="number" id="alert-price-upper" placeholder="e.g. 2050.00" step="0.01">
+                        <input type="number" id="alert-price-upper" placeholder="e.g. 2950.00" step="0.01">
                     </div>
                     <div class="alert-input-group">
                         <label>Price Lower Threshold</label>
-                        <input type="number" id="alert-price-lower" placeholder="e.g. 1950.00" step="0.01">
+                        <input type="number" id="alert-price-lower" placeholder="e.g. 2900.00" step="0.01">
                     </div>
                     <div class="alert-input-group">
                         <label>P&L Upper (Take Profit Alert)</label>
@@ -985,7 +1081,7 @@ let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT = 10;
 let alertLog = [];
-let alertSound = null;
+let hasData = false;
 
 // --- Tab Navigation ---
 document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -1020,15 +1116,37 @@ function profitClass(val) {
 }
 
 function typeClass(type) {
-    if (type.includes('BUY')) return 'type-buy';
-    if (type.includes('SELL')) return 'type-sell';
+    if (type && type.includes('BUY')) return 'type-buy';
+    if (type && type.includes('SELL')) return 'type-sell';
     return '';
 }
 
 function escapeHtml(str) {
+    if (!str) return '';
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+// --- Show/Hide welcome banner ---
+function showDataSections() {
+    if (hasData) return;
+    hasData = true;
+    document.getElementById('welcome-banner').style.display = 'none';
+    document.getElementById('account-section').style.display = '';
+    document.getElementById('dash-positions-panel').style.display = '';
+    document.getElementById('dash-orders-panel').style.display = '';
+}
+
+// --- Demo Data ---
+async function loadDemo() {
+    try {
+        const resp = await fetch(API_BASE + '/api/demo', { method: 'POST' });
+        const data = await resp.json();
+        showToast({ message: 'Demo data loaded - ' + data.deals + ' deals generated', severity: 'success' });
+    } catch (err) {
+        showToast({ message: 'Failed to load demo: ' + err.message, severity: 'danger' });
+    }
 }
 
 // --- WebSocket ---
@@ -1037,7 +1155,6 @@ function connectWS() {
 
     ws.onopen = () => {
         reconnectAttempts = 0;
-        setStatus(true);
     };
 
     ws.onclose = () => {
@@ -1057,6 +1174,10 @@ function connectWS() {
         const data = JSON.parse(event.data);
 
         if (data.type === 'update') {
+            setStatus(true);
+            if (data.account && data.account.login) {
+                showDataSections();
+            }
             updatePrice(data.price);
             updateAccount(data.account);
             updatePositions(data.positions);
@@ -1068,12 +1189,16 @@ function connectWS() {
             }
         }
 
+        if (data.type === 'status') {
+            setStatus(data.connected);
+        }
+
         if (data.type === 'error') {
             console.warn('[WS] Error:', data.message);
         }
 
         if (data.type === 'alert_config_updated') {
-            showToast({ type: 'info', message: 'Alert configuration updated', severity: 'success' });
+            showToast({ message: 'Alert configuration updated', severity: 'success' });
         }
     };
 }
@@ -1083,10 +1208,10 @@ function setStatus(connected) {
     const text = document.getElementById('status-text');
     if (connected) {
         dot.classList.add('connected');
-        text.textContent = 'Connected';
+        text.textContent = 'MT5 Connected';
     } else {
         dot.classList.remove('connected');
-        text.textContent = 'Disconnected';
+        text.textContent = 'Waiting for MT5';
     }
 }
 
@@ -1096,7 +1221,7 @@ function updateTimestamp(ts) {
 
 // --- Price ---
 function updatePrice(price) {
-    if (!price) return;
+    if (!price || !price.bid) return;
     document.getElementById('bid-price').textContent = fmt(price.bid, 2);
     document.getElementById('ask-price').textContent = fmt(price.ask, 2);
     document.getElementById('spread').textContent = fmt(price.spread, 2) + ' spread';
@@ -1104,7 +1229,7 @@ function updatePrice(price) {
 
 // --- Account ---
 function updateAccount(acct) {
-    if (!acct) return;
+    if (!acct || !acct.balance) return;
     document.getElementById('acct-balance').textContent = fmtMoney(acct.balance);
     document.getElementById('acct-equity').textContent = fmtMoney(acct.equity);
 
@@ -1132,7 +1257,7 @@ function updatePositions(positions) {
     } else {
         dashBody.innerHTML = positions.map(p => `
             <tr>
-                <td>${p.ticket}</td>
+                <td>${escapeHtml(String(p.ticket))}</td>
                 <td class="${typeClass(p.type)}">${escapeHtml(p.type)}</td>
                 <td>${fmt(p.volume, 2)}</td>
                 <td>${fmt(p.open_price, 2)}</td>
@@ -1152,7 +1277,7 @@ function updatePositions(positions) {
     } else {
         fullBody.innerHTML = positions.map(p => `
             <tr>
-                <td>${p.ticket}</td>
+                <td>${escapeHtml(String(p.ticket))}</td>
                 <td class="${typeClass(p.type)}">${escapeHtml(p.type)}</td>
                 <td>${fmt(p.volume, 2)}</td>
                 <td>${fmt(p.open_price, 2)}</td>
@@ -1183,7 +1308,7 @@ function updateOrders(orders) {
     } else {
         dashBody.innerHTML = orders.map(o => `
             <tr>
-                <td>${o.ticket}</td>
+                <td>${escapeHtml(String(o.ticket))}</td>
                 <td class="${typeClass(o.type)}">${escapeHtml(o.type)}</td>
                 <td>${fmt(o.volume, 2)}</td>
                 <td>${fmt(o.price, 2)}</td>
@@ -1201,7 +1326,7 @@ function updateOrders(orders) {
     } else {
         fullBody.innerHTML = orders.map(o => `
             <tr>
-                <td>${o.ticket}</td>
+                <td>${escapeHtml(String(o.ticket))}</td>
                 <td class="${typeClass(o.type)}">${escapeHtml(o.type)}</td>
                 <td>${fmt(o.volume, 2)}</td>
                 <td>${fmt(o.price, 2)}</td>
@@ -1242,8 +1367,8 @@ async function loadHistory() {
 
         body.innerHTML = deals.map(d => `
             <tr>
-                <td>${d.ticket}</td>
-                <td>${d.order}</td>
+                <td>${escapeHtml(String(d.ticket))}</td>
+                <td>${escapeHtml(String(d.order))}</td>
                 <td>${escapeHtml(d.time)}</td>
                 <td class="${typeClass(d.type)}">${escapeHtml(d.type)}</td>
                 <td>${escapeHtml(d.entry)}</td>
@@ -1288,7 +1413,7 @@ async function loadAnalytics() {
         document.getElementById('stat-total-swap').textContent = fmtMoney(data.total_swap);
 
         // Donut
-        const circumference = 2 * Math.PI * 55; // ~345.58
+        const circumference = 2 * Math.PI * 55;
         const winPct = data.win_rate / 100;
         const winLen = circumference * winPct;
         const lossLen = circumference * (1 - winPct);
@@ -1329,9 +1454,9 @@ function saveAlerts() {
 
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(config));
-        showToast({ type: 'info', message: 'Alert configuration saved', severity: 'success' });
+        showToast({ message: 'Alert configuration saved', severity: 'success' });
     } else {
-        showToast({ type: 'error', message: 'WebSocket not connected', severity: 'danger' });
+        showToast({ message: 'WebSocket not connected', severity: 'danger' });
     }
 }
 
