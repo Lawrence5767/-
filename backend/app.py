@@ -1,10 +1,12 @@
 """
 XAU/USD Trading Tracker - FastAPI Backend
 Receives trade data from MT5 Expert Advisor via HTTP push.
+Supports CSV import for trade history analysis on macOS.
 Works on macOS/Linux/Windows - no MetaTrader5 Python package needed.
 
 Architecture:
   MT5 Terminal (EA) --HTTP POST--> This Server (FastAPI) --WebSocket--> Browser Dashboard
+  CSV Import (Tickmill/MT5) --> This Server --> Analysis Dashboard
 """
 
 import asyncio
@@ -15,7 +17,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -168,6 +170,49 @@ async def get_history(days: int = Query(default=30, ge=1, le=365)):
 @app.get("/api/analytics")
 async def get_analytics(days: int = Query(default=30, ge=1, le=365)):
     return store.compute_analytics(days)
+
+
+@app.get("/api/analytics/advanced")
+async def get_advanced_analytics(days: int = Query(default=365, ge=1, le=3650)):
+    """Comprehensive trade history analysis with charts data."""
+    return store.compute_advanced_analytics(days)
+
+
+# ----- CSV Import Endpoint -----
+
+@app.post("/api/import/csv")
+async def import_csv(
+    file: UploadFile = File(...),
+    format: str = Form(default="auto"),
+):
+    """
+    Import trade history from a CSV file.
+    Supported formats: auto, mt5, tickmill, generic.
+    """
+    content = await file.read()
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        text = content.decode("utf-8-sig")  # Handle BOM
+
+    result = store.import_csv(text, csv_format=format)
+
+    # Broadcast update to WebSocket clients
+    data = _build_ws_payload()
+    await manager.broadcast(data)
+
+    return result
+
+
+@app.post("/api/deals/clear")
+async def clear_deals():
+    """Clear all deal history from the database."""
+    result = store.clear_deals()
+
+    data = _build_ws_payload()
+    await manager.broadcast(data)
+
+    return result
 
 
 @app.get("/api/alerts")

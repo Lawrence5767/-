@@ -1,13 +1,17 @@
 """
 XAU/USD Trading Tracker - Data Store Service
 Stores all trade data pushed from the MT5 Expert Advisor in SQLite.
+Supports CSV import from MT5/Tickmill for trade history analysis.
 Works on macOS/Linux/Windows - no MetaTrader5 Python package needed.
 """
 
+import csv
+import io
 import sqlite3
 import json
 import os
 import threading
+from collections import defaultdict
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from typing import Optional
@@ -451,6 +455,489 @@ class DataStore:
             "max_drawdown": round(max_dd, 2),
             "period_days": days,
         }
+
+    # ----- CSV Import -----
+
+    def import_csv(self, file_content: str, csv_format: str = "mt5") -> dict:
+        """
+        Import trade history from a CSV file.
+
+        Supported formats:
+        - "mt5": MetaTrader 5 trade history export (Account History tab -> right-click -> Report as CSV)
+        - "tickmill": Tickmill client portal trade history export
+        - "generic": Generic CSV with columns: time, type, volume, price, profit, swap, commission, comment
+        """
+        reader = csv.DictReader(io.StringIO(file_content))
+        fieldnames = [f.strip().lower() for f in (reader.fieldnames or [])]
+
+        if csv_format == "auto":
+            csv_format = self._detect_csv_format(fieldnames)
+
+        imported = 0
+        skipped = 0
+        conn = _get_conn()
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        for row in reader:
+            # Normalize keys to lowercase and strip whitespace
+            row = {k.strip().lower(): v.strip() for k, v in row.items()}
+
+            try:
+                deal = self._parse_csv_row(row, csv_format)
+                if deal is None:
+                    skipped += 1
+                    continue
+
+                conn.execute("""
+                    INSERT INTO deals (ticket, deal_order, symbol, type, volume,
+                        price, profit, swap, commission, fee, time, magic,
+                        comment, entry, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(ticket) DO UPDATE SET
+                        profit=excluded.profit, swap=excluded.swap,
+                        commission=excluded.commission, fee=excluded.fee,
+                        updated_at=excluded.updated_at
+                """, (
+                    deal["ticket"], deal.get("order", 0),
+                    deal.get("symbol", "XAUUSD"), deal["type"],
+                    deal["volume"], deal["price"],
+                    deal["profit"], deal.get("swap", 0),
+                    deal.get("commission", 0), deal.get("fee", 0),
+                    deal["time"], deal.get("magic", 0),
+                    deal.get("comment", ""), deal["entry"], now,
+                ))
+                imported += 1
+            except (ValueError, KeyError) as e:
+                skipped += 1
+
+        conn.commit()
+        return {
+            "status": "imported",
+            "format_detected": csv_format,
+            "imported": imported,
+            "skipped": skipped,
+        }
+
+    def _detect_csv_format(self, fieldnames: list[str]) -> str:
+        """Auto-detect CSV format based on column headers."""
+        fields_set = set(fieldnames)
+        # MT5 report has 'deal', 'order', 'symbol', 'type', 'direction', etc.
+        if "deal" in fields_set and "direction" in fields_set:
+            return "mt5"
+        if "deal" in fields_set or "order" in fields_set:
+            return "mt5"
+        # Tickmill uses 'ticket', 'open time', 'close time', 'symbol', etc.
+        if "open time" in fields_set and "close time" in fields_set:
+            return "tickmill"
+        if "ticket" in fields_set and ("open price" in fields_set or "close price" in fields_set):
+            return "tickmill"
+        return "generic"
+
+    def _parse_csv_row(self, row: dict, csv_format: str) -> Optional[dict]:
+        """Parse a single CSV row into a deal dict."""
+        if csv_format == "mt5":
+            return self._parse_mt5_row(row)
+        elif csv_format == "tickmill":
+            return self._parse_tickmill_row(row)
+        else:
+            return self._parse_generic_row(row)
+
+    def _parse_mt5_row(self, row: dict) -> Optional[dict]:
+        """Parse MT5 Account History CSV export row."""
+        # MT5 exports typically have: Deal, Order, Time, Type, Direction (IN/OUT),
+        # Volume, Price, S/L, T/P, Profit, Commission, Swap, Fee, Comment
+        deal_type = row.get("type", "").strip().upper()
+        if deal_type not in ("BUY", "SELL"):
+            return None
+
+        symbol = row.get("symbol", "").strip()
+        if symbol and "XAU" not in symbol.upper() and "GOLD" not in symbol.upper():
+            return None
+
+        direction = row.get("direction", row.get("entry", "")).strip().upper()
+        if direction not in ("IN", "OUT", "INOUT", "OUT_BY"):
+            # Try to infer: if profit != 0, it's probably OUT
+            profit = self._parse_float(row.get("profit", "0"))
+            direction = "OUT" if profit != 0 else "IN"
+
+        ticket_str = row.get("deal", row.get("ticket", "0"))
+        ticket = int(float(ticket_str)) if ticket_str else 0
+        if ticket == 0:
+            # Generate a ticket from hash of time + type
+            time_str = row.get("time", "")
+            ticket = abs(hash(time_str + deal_type)) % 2000000000
+
+        return {
+            "ticket": ticket,
+            "order": int(float(row.get("order", "0") or "0")),
+            "symbol": symbol or "XAUUSD",
+            "type": deal_type,
+            "volume": self._parse_float(row.get("volume", row.get("lot", "0"))),
+            "price": self._parse_float(row.get("price", "0")),
+            "profit": self._parse_float(row.get("profit", "0")),
+            "swap": self._parse_float(row.get("swap", "0")),
+            "commission": self._parse_float(row.get("commission", "0")),
+            "fee": self._parse_float(row.get("fee", "0")),
+            "time": self._normalize_datetime(row.get("time", "")),
+            "magic": int(float(row.get("magic", row.get("expert id", "0")) or "0")),
+            "comment": row.get("comment", ""),
+            "entry": direction,
+        }
+
+    def _parse_tickmill_row(self, row: dict) -> Optional[dict]:
+        """
+        Parse Tickmill client portal CSV export.
+        Tickmill exports completed trades with open/close info in one row.
+        We create two deals from each row: IN and OUT.
+        """
+        symbol = row.get("symbol", row.get("instrument", "")).strip()
+        if symbol and "XAU" not in symbol.upper() and "GOLD" not in symbol.upper():
+            return None
+
+        trade_type = row.get("type", row.get("direction", "")).strip().upper()
+        if trade_type not in ("BUY", "SELL"):
+            return None
+
+        ticket_str = row.get("ticket", row.get("order", row.get("deal", "0")))
+        ticket = int(float(ticket_str)) if ticket_str else 0
+
+        close_time = row.get("close time", row.get("time", ""))
+        if not close_time:
+            close_time = row.get("open time", "")
+
+        # For Tickmill exports, each row is a completed trade (OUT deal)
+        return {
+            "ticket": ticket,
+            "order": ticket,
+            "symbol": symbol or "XAUUSD",
+            "type": "SELL" if trade_type == "BUY" else "BUY",  # closing side
+            "volume": self._parse_float(row.get("volume", row.get("lot", row.get("lots", "0")))),
+            "price": self._parse_float(row.get("close price", row.get("price", "0"))),
+            "profit": self._parse_float(row.get("profit", row.get("net profit", "0"))),
+            "swap": self._parse_float(row.get("swap", "0")),
+            "commission": self._parse_float(row.get("commission", "0")),
+            "fee": self._parse_float(row.get("fee", "0")),
+            "time": self._normalize_datetime(close_time),
+            "magic": 0,
+            "comment": row.get("comment", ""),
+            "entry": "OUT",
+        }
+
+    def _parse_generic_row(self, row: dict) -> Optional[dict]:
+        """Parse a generic CSV row with minimal required columns."""
+        deal_type = row.get("type", row.get("direction", "")).strip().upper()
+        if deal_type not in ("BUY", "SELL"):
+            return None
+
+        ticket_str = row.get("ticket", row.get("deal", row.get("order", row.get("id", "0"))))
+        ticket = int(float(ticket_str)) if ticket_str else 0
+        if ticket == 0:
+            time_str = row.get("time", row.get("date", ""))
+            ticket = abs(hash(time_str + deal_type)) % 2000000000
+
+        profit = self._parse_float(row.get("profit", row.get("pnl", row.get("p&l", "0"))))
+        entry = row.get("entry", row.get("direction_type", "")).strip().upper()
+        if entry not in ("IN", "OUT", "INOUT", "OUT_BY"):
+            entry = "OUT" if profit != 0 else "IN"
+
+        return {
+            "ticket": ticket,
+            "order": int(float(row.get("order", "0") or "0")),
+            "symbol": row.get("symbol", row.get("instrument", "XAUUSD")),
+            "type": deal_type,
+            "volume": self._parse_float(row.get("volume", row.get("lot", row.get("lots", row.get("size", "0"))))),
+            "price": self._parse_float(row.get("price", row.get("close price", "0"))),
+            "profit": profit,
+            "swap": self._parse_float(row.get("swap", "0")),
+            "commission": self._parse_float(row.get("commission", "0")),
+            "fee": self._parse_float(row.get("fee", "0")),
+            "time": self._normalize_datetime(row.get("time", row.get("date", row.get("close time", "")))),
+            "magic": 0,
+            "comment": row.get("comment", ""),
+            "entry": entry,
+        }
+
+    def _parse_float(self, val: str) -> float:
+        """Safely parse a float from various formats."""
+        if not val or val == "--" or val == "N/A":
+            return 0.0
+        val = val.replace(",", "").replace(" ", "").replace("$", "")
+        return float(val)
+
+    def _normalize_datetime(self, dt_str: str) -> str:
+        """Normalize various datetime formats to YYYY-MM-DD HH:MM:SS."""
+        if not dt_str:
+            return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        dt_str = dt_str.strip()
+        formats = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y.%m.%d %H:%M:%S",
+            "%Y/%m/%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y.%m.%d %H:%M",
+            "%d/%m/%Y %H:%M:%S",
+            "%d/%m/%Y %H:%M",
+            "%m/%d/%Y %H:%M:%S",
+            "%m/%d/%Y %H:%M",
+            "%Y-%m-%dT%H:%M:%S",
+            "%d.%m.%Y %H:%M:%S",
+            "%d.%m.%Y %H:%M",
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(dt_str, fmt).strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+        return dt_str
+
+    # ----- Enhanced Analytics -----
+
+    def compute_advanced_analytics(self, days: int = 365) -> dict:
+        """Compute comprehensive trade analytics for XAU/USD history."""
+        deals = self.get_trade_history(days)
+        closing_deals = [d for d in deals if d.entry == "OUT"]
+
+        basic = self.compute_analytics(days)
+
+        if not closing_deals:
+            return {
+                **basic,
+                "avg_holding_time": "N/A",
+                "best_day": "N/A",
+                "worst_day": "N/A",
+                "consecutive_wins": 0,
+                "consecutive_losses": 0,
+                "monthly_pnl": [],
+                "daily_pnl": [],
+                "weekday_stats": [],
+                "hourly_stats": [],
+                "equity_curve": [],
+                "trade_details": [],
+            }
+
+        sorted_deals = sorted(closing_deals, key=lambda x: x.time)
+
+        # Equity curve
+        equity_curve = []
+        cumulative = 0.0
+        for d in sorted_deals:
+            cumulative += d.profit
+            equity_curve.append({
+                "time": d.time,
+                "equity": round(cumulative, 2),
+                "profit": round(d.profit, 2),
+            })
+
+        # Consecutive wins/losses
+        max_consec_wins = 0
+        max_consec_losses = 0
+        current_wins = 0
+        current_losses = 0
+        for d in sorted_deals:
+            if d.profit > 0:
+                current_wins += 1
+                current_losses = 0
+                max_consec_wins = max(max_consec_wins, current_wins)
+            elif d.profit < 0:
+                current_losses += 1
+                current_wins = 0
+                max_consec_losses = max(max_consec_losses, current_losses)
+            else:
+                current_wins = 0
+                current_losses = 0
+
+        # Monthly P&L
+        monthly_map = defaultdict(float)
+        for d in sorted_deals:
+            try:
+                month_key = d.time[:7]  # YYYY-MM
+                monthly_map[month_key] += d.profit
+            except (IndexError, TypeError):
+                pass
+        monthly_pnl = [
+            {"month": k, "pnl": round(v, 2)}
+            for k, v in sorted(monthly_map.items())
+        ]
+
+        # Weekly P&L (by calendar week)
+        weekly_map = defaultdict(float)
+        for d in sorted_deals:
+            try:
+                dt = datetime.strptime(d.time[:10], "%Y-%m-%d")
+                week_key = dt.strftime("%Y-W%W")
+                weekly_map[week_key] += d.profit
+            except (ValueError, TypeError):
+                pass
+        weekly_pnl = [
+            {"week": k, "pnl": round(v, 2)}
+            for k, v in sorted(weekly_map.items())
+        ]
+
+        # Daily P&L
+        daily_map = defaultdict(float)
+        for d in sorted_deals:
+            try:
+                day_key = d.time[:10]  # YYYY-MM-DD
+                daily_map[day_key] += d.profit
+            except (IndexError, TypeError):
+                pass
+        daily_pnl = [
+            {"date": k, "pnl": round(v, 2)}
+            for k, v in sorted(daily_map.items())
+        ]
+
+        # Performance by day of week
+        weekday_profits = defaultdict(list)
+        weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        for d in sorted_deals:
+            try:
+                dt = datetime.strptime(d.time[:10], "%Y-%m-%d")
+                weekday_profits[dt.weekday()].append(d.profit)
+            except (ValueError, TypeError):
+                pass
+        weekday_stats = []
+        for i in range(7):
+            profs = weekday_profits.get(i, [])
+            if profs:
+                wins = len([p for p in profs if p > 0])
+                weekday_stats.append({
+                    "day": weekday_names[i],
+                    "trades": len(profs),
+                    "total_pnl": round(sum(profs), 2),
+                    "avg_pnl": round(sum(profs) / len(profs), 2),
+                    "win_rate": round(wins / len(profs) * 100, 1),
+                })
+
+        # Performance by hour
+        hourly_profits = defaultdict(list)
+        for d in sorted_deals:
+            try:
+                dt = datetime.strptime(d.time, "%Y-%m-%d %H:%M:%S")
+                hourly_profits[dt.hour].append(d.profit)
+            except (ValueError, TypeError):
+                pass
+        hourly_stats = []
+        for h in range(24):
+            profs = hourly_profits.get(h, [])
+            if profs:
+                wins = len([p for p in profs if p > 0])
+                hourly_stats.append({
+                    "hour": f"{h:02d}:00",
+                    "trades": len(profs),
+                    "total_pnl": round(sum(profs), 2),
+                    "avg_pnl": round(sum(profs) / len(profs), 2),
+                    "win_rate": round(wins / len(profs) * 100, 1),
+                })
+
+        # Best and worst trading days
+        best_day = max(daily_pnl, key=lambda x: x["pnl"]) if daily_pnl else {"date": "N/A", "pnl": 0}
+        worst_day = min(daily_pnl, key=lambda x: x["pnl"]) if daily_pnl else {"date": "N/A", "pnl": 0}
+
+        # Average holding time (from IN to OUT deals matched by order)
+        entry_times = {}
+        holding_times = []
+        all_deals_sorted = sorted(deals, key=lambda x: x.time)
+        for d in all_deals_sorted:
+            if d.entry == "IN":
+                entry_times[d.order] = d.time
+            elif d.entry == "OUT" and d.order in entry_times:
+                try:
+                    t_in = datetime.strptime(entry_times[d.order], "%Y-%m-%d %H:%M:%S")
+                    t_out = datetime.strptime(d.time, "%Y-%m-%d %H:%M:%S")
+                    holding_times.append((t_out - t_in).total_seconds())
+                except (ValueError, TypeError):
+                    pass
+
+        avg_holding_seconds = sum(holding_times) / len(holding_times) if holding_times else 0
+        if avg_holding_seconds > 86400:
+            avg_holding = f"{avg_holding_seconds / 86400:.1f} days"
+        elif avg_holding_seconds > 3600:
+            avg_holding = f"{avg_holding_seconds / 3600:.1f} hours"
+        elif avg_holding_seconds > 60:
+            avg_holding = f"{avg_holding_seconds / 60:.0f} minutes"
+        elif avg_holding_seconds > 0:
+            avg_holding = f"{avg_holding_seconds:.0f} seconds"
+        else:
+            avg_holding = "N/A"
+
+        # Risk-reward ratio (avg win / avg loss)
+        avg_win = basic["avg_profit"]
+        avg_loss = basic["avg_loss"]
+        risk_reward = round(avg_win / avg_loss, 2) if avg_loss > 0 else 0.0
+
+        # Drawdown periods
+        peak = 0.0
+        max_dd = 0.0
+        dd_start = None
+        dd_end = None
+        dd_peak_time = None
+        cumulative = 0.0
+        drawdown_periods = []
+        in_drawdown = False
+
+        for d in sorted_deals:
+            cumulative += d.profit
+            if cumulative > peak:
+                if in_drawdown and dd_start:
+                    drawdown_periods.append({
+                        "start": dd_start,
+                        "end": d.time,
+                        "depth": round(peak - (cumulative - d.profit), 2),
+                    })
+                peak = cumulative
+                in_drawdown = False
+                dd_start = None
+            else:
+                if not in_drawdown:
+                    dd_start = d.time
+                    in_drawdown = True
+                dd = peak - cumulative
+                if dd > max_dd:
+                    max_dd = dd
+
+        # Trade details for the table
+        trade_details = []
+        for d in sorted_deals:
+            net = d.profit + d.swap + d.commission
+            trade_details.append({
+                "ticket": d.ticket,
+                "time": d.time,
+                "type": d.type,
+                "volume": d.volume,
+                "price": d.price,
+                "profit": round(d.profit, 2),
+                "swap": round(d.swap, 2),
+                "commission": round(d.commission, 2),
+                "net": round(net, 2),
+                "comment": d.comment,
+            })
+
+        return {
+            **basic,
+            "risk_reward_ratio": risk_reward,
+            "avg_holding_time": avg_holding,
+            "best_day": best_day,
+            "worst_day": worst_day,
+            "consecutive_wins": max_consec_wins,
+            "consecutive_losses": max_consec_losses,
+            "monthly_pnl": monthly_pnl,
+            "weekly_pnl": weekly_pnl,
+            "daily_pnl": daily_pnl,
+            "weekday_stats": weekday_stats,
+            "hourly_stats": hourly_stats,
+            "equity_curve": equity_curve,
+            "trade_details": trade_details,
+            "drawdown_periods": drawdown_periods[:10],  # Top 10
+        }
+
+    def clear_deals(self) -> dict:
+        """Clear all deal history from the database."""
+        conn = _get_conn()
+        count = conn.execute("SELECT COUNT(*) FROM deals").fetchone()[0]
+        conn.execute("DELETE FROM deals")
+        conn.commit()
+        return {"status": "cleared", "deleted": count}
 
     # ----- Demo data -----
 

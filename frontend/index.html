@@ -605,6 +605,167 @@
             border-radius: 50%;
         }
 
+        /* CSV Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 16px;
+            background: var(--bg-card);
+        }
+
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: var(--gold);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .upload-area h3 {
+            color: var(--gold);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .upload-area input[type="file"] { display: none; }
+
+        .upload-format-select {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .upload-format-select select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .upload-format-select label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .upload-status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .upload-status.success {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            display: block;
+        }
+
+        .upload-status.error {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            display: block;
+        }
+
+        /* Chart containers */
+        .chart-canvas-container {
+            padding: 18px;
+            position: relative;
+        }
+
+        .chart-canvas-container canvas {
+            width: 100% !important;
+            max-height: 350px;
+        }
+
+        /* Analyzer stats grid */
+        .analyzer-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            padding: 18px;
+        }
+
+        .analyzer-stat {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            text-align: center;
+        }
+
+        .analyzer-stat .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .analyzer-stat .value {
+            font-size: 20px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .analyzer-stat .sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Two column layout for analyzer */
+        .analyzer-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .analyzer-row { grid-template-columns: 1fr; }
+        }
+
+        /* Weekday/Hourly mini tables */
+        .mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .mini-table th {
+            text-align: left;
+            padding: 8px 10px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mini-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .mini-table tr:last-child td { border-bottom: none; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header { flex-direction: column; gap: 12px; padding: 12px; }
@@ -614,6 +775,7 @@
             .analytics-grid { grid-template-columns: 1fr; }
             .nav-tabs { overflow-x: auto; padding: 0 12px; }
             .welcome-banner .steps { grid-template-columns: 1fr; }
+            .analyzer-stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -650,6 +812,7 @@
     <div class="nav-tab" data-tab="history">History</div>
     <div class="nav-tab" data-tab="analytics">Analytics</div>
     <div class="nav-tab" data-tab="alerts">Alerts</div>
+    <div class="nav-tab" data-tab="analyzer" style="color:var(--gold); font-weight:600;">Trade Analyzer</div>
 </div>
 
 <!-- Alert Toasts -->
@@ -1018,6 +1181,148 @@
         </div>
     </div>
 
+    <!-- ===== TRADE ANALYZER TAB ===== -->
+    <div class="tab-content" id="tab-analyzer">
+        <!-- CSV Upload Section -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Import Trade History</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-demo" onclick="loadDemo()" style="font-size:11px;">Load Demo Data</button>
+                    <button class="btn btn-outline" onclick="clearDeals()" style="font-size:11px; padding:4px 12px;">Clear Data</button>
+                </div>
+            </div>
+            <div class="panel-body" style="padding: 18px;">
+                <div class="upload-area" id="upload-area" onclick="document.getElementById('csv-file').click()">
+                    <h3>Upload CSV Trade History</h3>
+                    <p>Drag & drop your CSV file here, or click to browse</p>
+                    <p style="font-size:11px; color:var(--text-muted);">
+                        Supports: MT5 Account History export, Tickmill client portal export, or generic CSV
+                    </p>
+                    <input type="file" id="csv-file" accept=".csv,.txt" onchange="handleFileUpload(this)">
+                    <div class="upload-format-select">
+                        <label>Format:</label>
+                        <select id="csv-format">
+                            <option value="auto">Auto-detect</option>
+                            <option value="mt5">MetaTrader 5</option>
+                            <option value="tickmill">Tickmill</option>
+                            <option value="generic">Generic CSV</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="upload-status" id="upload-status"></div>
+
+                <!-- Export instructions -->
+                <div style="margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">How to Export Your Trade History</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.8;">
+                        <strong style="color: var(--gold);">From MT5:</strong> Account History tab &rarr; Right-click &rarr; Report &rarr; Save as CSV<br>
+                        <strong style="color: var(--gold);">From Tickmill Portal:</strong> Log in &rarr; Trade History &rarr; Filter by XAU/USD &rarr; Export CSV<br>
+                        <strong style="color: var(--gold);">Required columns:</strong> time/date, type (BUY/SELL), volume/lot, price, profit
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Period Filter -->
+        <div class="filter-bar" style="background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px;">
+            <label>Analysis Period:</label>
+            <select id="analyzer-days">
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="365" selected>Last 365 days</option>
+                <option value="3650">All time</option>
+            </select>
+            <button class="btn btn-gold" onclick="loadAdvancedAnalytics()">Analyze</button>
+        </div>
+
+        <!-- Key Performance Metrics -->
+        <div class="panel" id="analyzer-metrics-panel" style="display:none;">
+            <div class="panel-header">
+                <span class="panel-title">Key Performance Metrics</span>
+            </div>
+            <div class="analyzer-stats-grid" id="analyzer-stats-grid"></div>
+        </div>
+
+        <!-- Equity Curve Chart -->
+        <div class="panel" id="analyzer-equity-panel" style="display:none;">
+            <div class="panel-header">
+                <span class="panel-title">Equity Curve</span>
+            </div>
+            <div class="chart-canvas-container">
+                <canvas id="equity-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Monthly P&L Chart -->
+        <div class="panel" id="analyzer-monthly-panel" style="display:none;">
+            <div class="panel-header">
+                <span class="panel-title">Monthly P&L</span>
+            </div>
+            <div class="chart-canvas-container">
+                <canvas id="monthly-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Weekday & Hourly Analysis -->
+        <div class="analyzer-row" id="analyzer-time-row" style="display:none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Performance by Day of Week</span>
+                </div>
+                <div class="panel-body">
+                    <table class="mini-table" id="weekday-table">
+                        <thead>
+                            <tr><th>Day</th><th>Trades</th><th>Total P&L</th><th>Avg P&L</th><th>Win Rate</th></tr>
+                        </thead>
+                        <tbody id="weekday-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Performance by Hour</span>
+                </div>
+                <div class="panel-body" style="max-height: 400px; overflow-y: auto;">
+                    <table class="mini-table" id="hourly-table">
+                        <thead>
+                            <tr><th>Hour</th><th>Trades</th><th>Total P&L</th><th>Avg P&L</th><th>Win Rate</th></tr>
+                        </thead>
+                        <tbody id="hourly-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trade List -->
+        <div class="panel" id="analyzer-trades-panel" style="display:none;">
+            <div class="panel-header">
+                <span class="panel-title">Closed Trades</span>
+                <span class="panel-badge" id="analyzer-trade-count">0</span>
+            </div>
+            <div class="panel-body" style="max-height: 500px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                            <th>Price</th>
+                            <th>Commission</th>
+                            <th>Swap</th>
+                            <th>Profit</th>
+                            <th>Net</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyzer-trades-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== ALERTS TAB ===== -->
     <div class="tab-content" id="tab-alerts">
         <div class="panel">
@@ -1069,6 +1374,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 // ============================================================
 // XAU/USD Trading Tracker - Frontend Logic
@@ -1093,6 +1399,7 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 
         if (tab.dataset.tab === 'history') loadHistory();
         if (tab.dataset.tab === 'analytics') loadAnalytics();
+        if (tab.dataset.tab === 'analyzer') loadAdvancedAnalytics();
     });
 });
 
@@ -1533,6 +1840,316 @@ function playAlertSound() {
     } catch (e) {
         // Audio not supported
     }
+}
+
+// ============================================================
+// Trade Analyzer Functions
+// ============================================================
+
+let equityChart = null;
+let monthlyChart = null;
+
+// --- Drag & Drop ---
+const uploadArea = document.getElementById('upload-area');
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+});
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('drag-over');
+});
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        uploadCSV(files[0]);
+    }
+});
+
+function handleFileUpload(input) {
+    if (input.files.length > 0) {
+        uploadCSV(input.files[0]);
+    }
+}
+
+async function uploadCSV(file) {
+    const statusEl = document.getElementById('upload-status');
+    statusEl.className = 'upload-status';
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Uploading and processing...';
+    statusEl.style.background = 'var(--blue-bg)';
+    statusEl.style.color = 'var(--blue)';
+    statusEl.style.border = '1px solid rgba(59, 130, 246, 0.3)';
+
+    const format = document.getElementById('csv-format').value;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('format', format);
+
+    try {
+        const resp = await fetch(API_BASE + '/api/import/csv', {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            statusEl.className = 'upload-status success';
+            statusEl.textContent = `Imported ${data.imported} trades (${data.skipped} skipped). Format: ${data.format_detected}`;
+            showToast({ message: `CSV imported: ${data.imported} trades loaded`, severity: 'success' });
+            // Auto-trigger analysis
+            loadAdvancedAnalytics();
+        } else {
+            statusEl.className = 'upload-status error';
+            statusEl.textContent = 'Error: ' + (data.detail || JSON.stringify(data));
+        }
+    } catch (err) {
+        statusEl.className = 'upload-status error';
+        statusEl.textContent = 'Upload failed: ' + err.message;
+    }
+
+    // Reset file input
+    document.getElementById('csv-file').value = '';
+}
+
+async function clearDeals() {
+    if (!confirm('Clear all trade history data? This cannot be undone.')) return;
+    try {
+        const resp = await fetch(API_BASE + '/api/deals/clear', { method: 'POST' });
+        const data = await resp.json();
+        showToast({ message: `Cleared ${data.deleted} deals`, severity: 'success' });
+        // Hide analyzer panels
+        ['analyzer-metrics-panel', 'analyzer-equity-panel', 'analyzer-monthly-panel',
+         'analyzer-time-row', 'analyzer-trades-panel'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+    } catch (err) {
+        showToast({ message: 'Failed to clear: ' + err.message, severity: 'danger' });
+    }
+}
+
+async function loadAdvancedAnalytics() {
+    const days = document.getElementById('analyzer-days').value;
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/analytics/advanced?days=${days}`);
+        const data = await resp.json();
+
+        if (data.total_trades === 0) {
+            showToast({ message: 'No closed trades found for this period. Import a CSV or load demo data.', severity: 'warning' });
+            return;
+        }
+
+        // Show all panels
+        ['analyzer-metrics-panel', 'analyzer-equity-panel', 'analyzer-monthly-panel',
+         'analyzer-time-row', 'analyzer-trades-panel'].forEach(id => {
+            document.getElementById(id).style.display = '';
+        });
+
+        renderAnalyzerStats(data);
+        renderEquityChart(data.equity_curve);
+        renderMonthlyChart(data.monthly_pnl);
+        renderWeekdayTable(data.weekday_stats);
+        renderHourlyTable(data.hourly_stats);
+        renderTradesList(data.trade_details);
+
+    } catch (err) {
+        showToast({ message: 'Failed to load analysis: ' + err.message, severity: 'danger' });
+    }
+}
+
+function renderAnalyzerStats(data) {
+    const stats = [
+        { label: 'Total Trades', value: data.total_trades, cls: '' },
+        { label: 'Net P&L', value: fmtMoney(data.net_pnl), cls: profitClass(data.net_pnl) },
+        { label: 'Win Rate', value: data.win_rate + '%', cls: data.win_rate >= 50 ? 'profit-positive' : 'profit-negative' },
+        { label: 'Profit Factor', value: data.profit_factor === Infinity ? 'Inf' : fmt(data.profit_factor, 2), cls: data.profit_factor >= 1 ? 'profit-positive' : 'profit-negative' },
+        { label: 'Risk:Reward', value: data.risk_reward_ratio ? '1:' + data.risk_reward_ratio : 'N/A', cls: '' },
+        { label: 'Avg Win', value: fmtMoney(data.avg_profit), cls: 'profit-positive' },
+        { label: 'Avg Loss', value: fmtMoney(-data.avg_loss), cls: 'profit-negative' },
+        { label: 'Largest Win', value: fmtMoney(data.largest_win), cls: 'profit-positive' },
+        { label: 'Largest Loss', value: fmtMoney(data.largest_loss), cls: 'profit-negative' },
+        { label: 'Max Drawdown', value: fmtMoney(-data.max_drawdown), cls: 'profit-negative' },
+        { label: 'Win Streak', value: data.consecutive_wins, cls: 'profit-positive' },
+        { label: 'Loss Streak', value: data.consecutive_losses, cls: 'profit-negative' },
+        { label: 'Avg Holding', value: data.avg_holding_time, cls: '' },
+        { label: 'Total Volume', value: fmt(data.total_volume, 2) + ' lots', cls: '' },
+        { label: 'Total Commission', value: fmtMoney(data.total_commission), cls: '' },
+        { label: 'Total Swap', value: fmtMoney(data.total_swap), cls: '' },
+        { label: 'Best Day', value: data.best_day.date ? fmtMoney(data.best_day.pnl) : 'N/A',
+          cls: 'profit-positive', sub: data.best_day.date || '' },
+        { label: 'Worst Day', value: data.worst_day.date ? fmtMoney(data.worst_day.pnl) : 'N/A',
+          cls: 'profit-negative', sub: data.worst_day.date || '' },
+    ];
+
+    const grid = document.getElementById('analyzer-stats-grid');
+    grid.innerHTML = stats.map(s => `
+        <div class="analyzer-stat">
+            <div class="label">${escapeHtml(s.label)}</div>
+            <div class="value ${s.cls}">${s.value}</div>
+            ${s.sub ? `<div class="sub">${escapeHtml(s.sub)}</div>` : ''}
+        </div>
+    `).join('');
+}
+
+function renderEquityChart(equityCurve) {
+    if (equityChart) equityChart.destroy();
+    const canvas = document.getElementById('equity-chart');
+    const ctx = canvas.getContext('2d');
+
+    const labels = equityCurve.map(e => e.time.substring(0, 10));
+    const values = equityCurve.map(e => e.equity);
+
+    equityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cumulative P&L ($)',
+                data: values,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: values.length > 50 ? 0 : 3,
+                pointHoverRadius: 5,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `P&L: $${ctx.parsed.y.toFixed(2)}`,
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#6b7280', maxTicksLimit: 12, font: { size: 11 } },
+                    grid: { color: 'rgba(42, 53, 72, 0.5)' },
+                },
+                y: {
+                    ticks: {
+                        color: '#6b7280',
+                        font: { size: 11 },
+                        callback: (v) => '$' + v.toFixed(0),
+                    },
+                    grid: { color: 'rgba(42, 53, 72, 0.5)' },
+                }
+            },
+            interaction: { intersect: false, mode: 'index' },
+        }
+    });
+}
+
+function renderMonthlyChart(monthlyPnl) {
+    if (monthlyChart) monthlyChart.destroy();
+    const canvas = document.getElementById('monthly-chart');
+    const ctx = canvas.getContext('2d');
+
+    const labels = monthlyPnl.map(m => m.month);
+    const values = monthlyPnl.map(m => m.pnl);
+    const colors = values.map(v => v >= 0 ? '#10b981' : '#ef4444');
+
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Monthly P&L ($)',
+                data: values,
+                backgroundColor: colors,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `P&L: $${ctx.parsed.y.toFixed(2)}`,
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#6b7280', font: { size: 11 } },
+                    grid: { color: 'rgba(42, 53, 72, 0.5)' },
+                },
+                y: {
+                    ticks: {
+                        color: '#6b7280',
+                        font: { size: 11 },
+                        callback: (v) => '$' + v.toFixed(0),
+                    },
+                    grid: { color: 'rgba(42, 53, 72, 0.5)' },
+                }
+            },
+        }
+    });
+}
+
+function renderWeekdayTable(stats) {
+    const body = document.getElementById('weekday-body');
+    if (!stats || stats.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="empty-state">No data</td></tr>';
+        return;
+    }
+    body.innerHTML = stats.map(s => `
+        <tr>
+            <td>${escapeHtml(s.day)}</td>
+            <td>${s.trades}</td>
+            <td class="${profitClass(s.total_pnl)}">${fmtMoney(s.total_pnl)}</td>
+            <td class="${profitClass(s.avg_pnl)}">${fmtMoney(s.avg_pnl)}</td>
+            <td style="color: ${s.win_rate >= 50 ? 'var(--green)' : 'var(--red)'}">${s.win_rate}%</td>
+        </tr>
+    `).join('');
+}
+
+function renderHourlyTable(stats) {
+    const body = document.getElementById('hourly-body');
+    if (!stats || stats.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="empty-state">No data</td></tr>';
+        return;
+    }
+    body.innerHTML = stats.map(s => `
+        <tr>
+            <td>${escapeHtml(s.hour)}</td>
+            <td>${s.trades}</td>
+            <td class="${profitClass(s.total_pnl)}">${fmtMoney(s.total_pnl)}</td>
+            <td class="${profitClass(s.avg_pnl)}">${fmtMoney(s.avg_pnl)}</td>
+            <td style="color: ${s.win_rate >= 50 ? 'var(--green)' : 'var(--red)'}">${s.win_rate}%</td>
+        </tr>
+    `).join('');
+}
+
+function renderTradesList(trades) {
+    document.getElementById('analyzer-trade-count').textContent = trades.length;
+    const body = document.getElementById('analyzer-trades-body');
+    if (!trades || trades.length === 0) {
+        body.innerHTML = '<tr><td colspan="9" class="empty-state">No closed trades</td></tr>';
+        return;
+    }
+    body.innerHTML = trades.map(t => `
+        <tr>
+            <td>${t.ticket}</td>
+            <td>${escapeHtml(t.time)}</td>
+            <td class="${typeClass(t.type)}">${escapeHtml(t.type)}</td>
+            <td>${fmt(t.volume, 2)}</td>
+            <td>${fmt(t.price, 2)}</td>
+            <td>${fmtMoney(t.commission)}</td>
+            <td>${fmtMoney(t.swap)}</td>
+            <td class="${profitClass(t.profit)}">${fmtMoney(t.profit)}</td>
+            <td class="${profitClass(t.net)}">${fmtMoney(t.net)}</td>
+        </tr>
+    `).join('');
 }
 
 // --- Init ---
