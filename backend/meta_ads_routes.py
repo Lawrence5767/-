@@ -3,12 +3,14 @@ Meta Ads Routes - FastAPI endpoints for Meta Ads + Claude integration.
 Supports multi-brand, multi-page management.
 """
 
+import os
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from meta_ads_service import MetaAdsService, MetaAdsConfig, MetaAdsAPIError
+from meta_ads_service import MetaAdsService, MetaAdsConfig, MetaAdsAPIError, META_BASE_URL
 from brands_config import (
     get_all_brands,
     get_brand,
@@ -215,6 +217,62 @@ async def update_config(req: ConfigUpdate):
     )
     _meta_service = MetaAdsService(config)
     return {"status": "updated", "configured": config.is_configured}
+
+
+class ExtendTokenRequest(BaseModel):
+    short_lived_token: str
+
+
+@router.post("/extend-token")
+async def extend_token(req: ExtendTokenRequest):
+    """Exchange a short-lived token for a long-lived token (~60 days).
+
+    Requires META_APP_SECRET environment variable to be set.
+    """
+    app_secret = os.environ.get("META_APP_SECRET", "")
+    if not app_secret:
+        raise HTTPException(
+            status_code=400,
+            detail="META_APP_SECRET not set. Add it to your .env file.",
+        )
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(
+            f"{META_BASE_URL}/oauth/access_token",
+            params={
+                "grant_type": "fb_exchange_token",
+                "client_id": META_APP_ID,
+                "client_secret": app_secret,
+                "fb_exchange_token": req.short_lived_token,
+            },
+        )
+        data = resp.json()
+
+    if "error" in data:
+        raise HTTPException(
+            status_code=400,
+            detail=data["error"].get("message", "Token exchange failed"),
+        )
+
+    long_lived_token = data.get("access_token", "")
+    expires_in = data.get("expires_in", 0)  # seconds
+
+    # Auto-update the active service with the new token
+    global _meta_service
+    svc = get_meta_service()
+    config = MetaAdsConfig(
+        access_token=long_lived_token,
+        ad_account_id=svc.config.ad_account_id,
+        page_id=svc.config.page_id,
+    )
+    _meta_service = MetaAdsService(config)
+
+    return {
+        "status": "extended",
+        "access_token": long_lived_token,
+        "expires_in_seconds": expires_in,
+        "expires_in_days": round(expires_in / 86400, 1) if expires_in else "~60",
+    }
 
 
 # ── Claude AI Generation ──────────────────────────────────────────────

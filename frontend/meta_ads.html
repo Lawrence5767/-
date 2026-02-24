@@ -702,7 +702,10 @@
                         <input type="text" id="cfgPageId" placeholder="Your Facebook Page ID">
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+                    <button class="btn btn-outline" onclick="extendToken()" title="Exchange short-lived token (~1hr) for long-lived token (~60 days)">Extend Token to 60 Days</button>
+                </div>
                 <div id="configResults" style="margin-top:12px;"></div>
             </div>
 
@@ -990,6 +993,24 @@ async function saveConfig() {
         loadConfig();
     } catch (e) {
         showAlert('configResults', 'error', `Error: ${e.message}`);
+    }
+}
+
+async function extendToken() {
+    const token = document.getElementById('cfgAccessToken').value.trim();
+    if (!token) {
+        showAlert('configResults', 'error', 'Please enter your short-lived access token first.');
+        return;
+    }
+    showAlert('configResults', 'info', 'Exchanging token... please wait.');
+    try {
+        const result = await apiCall('/extend-token', 'POST', { short_lived_token: token });
+        // Auto-fill the new long-lived token
+        document.getElementById('cfgAccessToken').value = result.access_token;
+        showAlert('configResults', 'success',
+            `Token extended successfully! Expires in ~${result.expires_in_days} days. Click "Save Configuration" to apply.`);
+    } catch (e) {
+        showAlert('configResults', 'error', `Token extension failed: ${e.message}`);
     }
 }
 
