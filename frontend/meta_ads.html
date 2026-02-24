@@ -702,10 +702,13 @@
                         <input type="text" id="cfgPageId" placeholder="Your Facebook Page ID">
                     </div>
                 </div>
-                <div style="display:flex; gap:10px; align-items:center;">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                     <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
-                    <button class="btn btn-outline" onclick="extendToken()" title="Exchange short-lived token (~1hr) for long-lived token (~60 days)">Extend Token to 60 Days</button>
+                    <button class="btn" style="background:#e67e22;color:#fff;border:none;" onclick="extendToken()" title="Exchange short-lived token (~1hr) for long-lived token (~60 days)">Extend Token to 60 Days</button>
                 </div>
+                <p style="color:var(--text-secondary); font-size:12px; margin-top:8px;">
+                    Short-lived tokens expire in ~1 hour. Click "Extend Token" to exchange for a ~60-day token.
+                </p>
                 <div id="configResults" style="margin-top:12px;"></div>
             </div>
 
