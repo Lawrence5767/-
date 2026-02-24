@@ -14,13 +14,17 @@ Each brand contains:
     - url: Facebook page URL
 
 Meta App ID: 910390974704285 (Claude Based app - Nova Furnishing)
+Ad Account: act_509332282736842 (Nova Ads - shared across all brands)
 """
+
+# Shared ad account used for all brands
+AD_ACCOUNT_ID = "act_509332282736842"
 
 BRANDS = {
     "nova_furnishing": {
         "name": "Nova Furnishing",
         "code": "NV",
-        "ad_account_id": "",
+        "ad_account_id": AD_ACCOUNT_ID,
         "pages": {
             "NVMP": {
                 "name": "Nova Furnishing Singapore",
@@ -69,7 +73,7 @@ BRANDS = {
     "rozel_furnishing": {
         "name": "Rozel Furnishing",
         "code": "RZ",
-        "ad_account_id": "",
+        "ad_account_id": AD_ACCOUNT_ID,
         "pages": {
             "RZMP": {
                 "name": "Rozel Furnishing SG",
@@ -104,7 +108,7 @@ BRANDS = {
     "xclusive_home": {
         "name": "X'clusive Home",
         "code": "XH",
-        "ad_account_id": "",
+        "ad_account_id": AD_ACCOUNT_ID,
         "pages": {
             "XHMP": {
                 "name": "X'clusive Home Singapore",
@@ -146,7 +150,7 @@ BRANDS = {
     "megahome_furnishing": {
         "name": "Megahome Furnishing",
         "code": "MGH",
-        "ad_account_id": "",
+        "ad_account_id": AD_ACCOUNT_ID,
         "pages": {
             "MGH": {
                 "name": "Megahome Furnishing",

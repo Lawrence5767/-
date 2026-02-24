@@ -34,7 +34,7 @@ class MetaAdsConfig:
     def from_env(cls) -> "MetaAdsConfig":
         return cls(
             access_token=os.environ.get("META_ACCESS_TOKEN", ""),
-            ad_account_id=os.environ.get("META_AD_ACCOUNT_ID", ""),
+            ad_account_id=os.environ.get("META_AD_ACCOUNT_ID", "act_509332282736842"),
             page_id=os.environ.get("META_PAGE_ID", ""),
         )
 
