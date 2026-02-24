@@ -1,5 +1,6 @@
 """
 Meta Ads Routes - FastAPI endpoints for Meta Ads + Claude integration.
+Supports multi-brand, multi-page management.
 """
 
 from typing import Optional
@@ -8,6 +9,14 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from meta_ads_service import MetaAdsService, MetaAdsConfig, MetaAdsAPIError
+from brands_config import (
+    get_all_brands,
+    get_brand,
+    get_page_id,
+    set_brand_ad_account,
+    META_APP_ID,
+    BRANDS,
+)
 import claude_ad_service
 
 
@@ -24,6 +33,27 @@ def get_meta_service() -> MetaAdsService:
     return _meta_service
 
 
+def _resolve_page_id(
+    brand_key: Optional[str],
+    page_code: Optional[str],
+    explicit_page_id: Optional[str],
+) -> str:
+    """Resolve a page ID from brand/page selection or an explicit ID."""
+    if explicit_page_id:
+        return explicit_page_id
+    if brand_key and page_code:
+        pid = get_page_id(brand_key, page_code)
+        if pid:
+            return pid
+    svc = get_meta_service()
+    if svc.config.page_id:
+        return svc.config.page_id
+    raise HTTPException(
+        status_code=400,
+        detail="page_id is required — select a brand/page or set in config",
+    )
+
+
 # ── Pydantic request models ───────────────────────────────────────────
 
 
@@ -33,6 +63,11 @@ class ConfigUpdate(BaseModel):
     page_id: str = ""
 
 
+class BrandAdAccountUpdate(BaseModel):
+    brand_key: str
+    ad_account_id: str
+
+
 class GenerateAdCopyRequest(BaseModel):
     product_name: str
     product_description: str
@@ -40,6 +75,8 @@ class GenerateAdCopyRequest(BaseModel):
     tone: str = "professional"
     landing_page_url: str = ""
     num_variations: int = 3
+    brand_key: str = ""
+    page_code: str = ""
 
 
 class GenerateTargetingRequest(BaseModel):
@@ -57,6 +94,8 @@ class GenerateCampaignRequest(BaseModel):
     target_audience: str = ""
     landing_page_url: str = ""
     tone: str = "professional"
+    brand_key: str = ""
+    page_code: str = ""
 
 
 class CreateCampaignRequest(BaseModel):
@@ -84,6 +123,8 @@ class CreateAdSetRequest(BaseModel):
 class CreateAdCreativeRequest(BaseModel):
     name: str
     page_id: str = ""
+    brand_key: str = ""
+    page_code: str = ""
     link: str
     message: str
     headline: str
@@ -106,6 +147,43 @@ class DeployCampaignRequest(BaseModel):
     landing_page_url: str = ""
     image_url: str = ""
     page_id: str = ""
+    brand_key: str = ""
+    page_code: str = ""
+
+
+# ── Brands & Pages ────────────────────────────────────────────────────
+
+
+@router.get("/brands")
+async def list_brands():
+    """List all brands and their Facebook pages."""
+    return {"brands": get_all_brands(), "meta_app_id": META_APP_ID}
+
+
+@router.get("/brands/{brand_key}")
+async def get_brand_detail(brand_key: str):
+    """Get a single brand's details."""
+    brand = get_brand(brand_key)
+    if not brand:
+        raise HTTPException(status_code=404, detail=f"Brand '{brand_key}' not found")
+    pages = []
+    for code, page in brand["pages"].items():
+        pages.append({"code": code, **page})
+    return {
+        "key": brand_key,
+        "name": brand["name"],
+        "code": brand["code"],
+        "ad_account_id": brand["ad_account_id"],
+        "pages": pages,
+    }
+
+
+@router.post("/brands/ad-account")
+async def update_brand_ad_account(req: BrandAdAccountUpdate):
+    """Set the ad account ID for a brand (runtime only)."""
+    if not set_brand_ad_account(req.brand_key, req.ad_account_id):
+        raise HTTPException(status_code=404, detail=f"Brand '{req.brand_key}' not found")
+    return {"status": "updated", "brand_key": req.brand_key, "ad_account_id": req.ad_account_id}
 
 
 # ── Configuration ─────────────────────────────────────────────────────
@@ -122,6 +200,7 @@ async def get_config():
         "access_token_preview": f"{token[:8]}...{token[-4:]}" if len(token) > 12 else ("***" if token else ""),
         "ad_account_id": svc.config.ad_account_id,
         "page_id": svc.config.page_id,
+        "meta_app_id": META_APP_ID,
     }
 
 
@@ -300,9 +379,7 @@ async def create_ad_set(req: CreateAdSetRequest):
 async def create_ad_creative(req: CreateAdCreativeRequest):
     """Create an ad creative."""
     svc = get_meta_service()
-    page_id = req.page_id or svc.config.page_id
-    if not page_id:
-        raise HTTPException(status_code=400, detail="page_id is required (set in config or request)")
+    page_id = _resolve_page_id(req.brand_key, req.page_code, req.page_id or "")
     try:
         return await svc.create_ad_creative(
             name=req.name,
@@ -365,10 +442,7 @@ async def deploy_campaign(req: DeployCampaignRequest):
     """
     svc = get_meta_service()
     plan = req.campaign_plan
-    page_id = req.page_id or svc.config.page_id
-
-    if not page_id:
-        raise HTTPException(status_code=400, detail="page_id is required")
+    page_id = _resolve_page_id(req.brand_key, req.page_code, req.page_id or "")
 
     results = {"campaign": None, "ad_set": None, "creatives": [], "ads": []}
 

@@ -74,6 +74,69 @@
 
         .nav-link:hover { background: var(--bg-card); color: var(--text-primary); }
 
+        /* Brand selector bar */
+        .brand-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand-bar label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .brand-selector, .page-selector {
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            min-width: 180px;
+            cursor: pointer;
+        }
+
+        .brand-selector:focus, .page-selector:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .brand-page-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-page-info .page-id-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent);
+        }
+
+        .page-type-badge {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .page-type-brand { background: rgba(124,58,237,0.25); color: var(--claude-purple); }
+        .page-type-showroom { background: rgba(24,119,242,0.2); color: var(--meta-blue); }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -373,10 +436,64 @@
 
         .empty-state p { margin-top: 8px; font-size: 14px; }
 
+        /* Brand overview cards */
+        .brand-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .brand-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .brand-card:hover { border-color: var(--accent); }
+        .brand-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+        .brand-card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .brand-card .page-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .brand-card .page-list {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .brand-card .page-chip {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .brand-card .page-chip.main-page {
+            border-color: var(--claude-purple);
+            color: var(--claude-purple);
+        }
+
         @media (max-width: 768px) {
             .form-row, .form-row-3 { grid-template-columns: 1fr; }
             .container { padding: 16px; }
             .tabs { overflow-x: auto; }
+            .brand-bar { padding: 10px 16px; }
+            .brand-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -396,21 +513,65 @@
         </div>
     </div>
 
+    <!-- Brand / Page selector bar -->
+    <div class="brand-bar" id="brandBar">
+        <label>Brand:</label>
+        <select class="brand-selector" id="brandSelect" onchange="onBrandChange()">
+            <option value="">-- Select Brand --</option>
+        </select>
+        <label>Page:</label>
+        <select class="page-selector" id="pageSelect" onchange="onPageChange()">
+            <option value="">-- Select Page --</option>
+        </select>
+        <div class="brand-page-info" id="pageInfo"></div>
+    </div>
+
     <div class="container">
         <div class="tabs">
-            <button class="tab active" data-tab="generate">AI Generate</button>
+            <button class="tab active" data-tab="brands">Brands</button>
+            <button class="tab" data-tab="generate">AI Generate</button>
             <button class="tab" data-tab="campaigns">Campaigns</button>
             <button class="tab" data-tab="deploy">Deploy</button>
             <button class="tab" data-tab="settings">Settings</button>
         </div>
 
-        <!-- ═══ TAB: AI Generate ═══ -->
-        <div id="tab-generate" class="tab-content active">
+        <!-- TAB: Brands Overview -->
+        <div id="tab-brands" class="tab-content active">
+            <div class="card">
+                <h2>Your Brands &amp; Facebook Pages</h2>
+                <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+                    Select a brand and page to manage ads for. Each brand has multiple showroom pages and a main brand page.
+                </p>
+                <div class="brand-grid" id="brandGrid"></div>
+            </div>
+
+            <!-- Page details for selected brand -->
+            <div class="card" id="brandDetailCard" style="display:none;">
+                <h2 id="brandDetailTitle">Pages</h2>
+                <table class="campaign-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Page Name</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Page ID</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="brandDetailPages"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: AI Generate -->
+        <div id="tab-generate" class="tab-content">
             <div class="card">
                 <h2>Generate Ad Content with Claude</h2>
+                <div id="genContextInfo" class="alert alert-info" style="display:none;"></div>
                 <div class="form-group">
                     <label>Product / Service Name</label>
-                    <input type="text" id="genProductName" placeholder="e.g. Gold Trading Signals">
+                    <input type="text" id="genProductName" placeholder="e.g. Nova Furnishing Sofa Collection">
                 </div>
                 <div class="form-group">
                     <label>Product Description</label>
@@ -419,7 +580,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Target Audience</label>
-                        <input type="text" id="genAudience" placeholder="e.g. Forex traders aged 25-45">
+                        <input type="text" id="genAudience" placeholder="e.g. Singapore homeowners aged 25-55">
                     </div>
                     <div class="form-group">
                         <label>Tone</label>
@@ -469,7 +630,7 @@
             </div>
         </div>
 
-        <!-- ═══ TAB: Campaigns ═══ -->
+        <!-- TAB: Campaigns -->
         <div id="tab-campaigns" class="tab-content">
             <div class="card">
                 <h2>
@@ -484,14 +645,16 @@
             </div>
         </div>
 
-        <!-- ═══ TAB: Deploy ═══ -->
+        <!-- TAB: Deploy -->
         <div id="tab-deploy" class="tab-content">
             <div class="card">
                 <h2>Deploy Campaign to Meta</h2>
                 <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
                     First generate a full campaign plan in the AI Generate tab, then paste the plan here to deploy it to Meta Ads.
                     Everything is created in PAUSED status for your review.
+                    The currently selected brand/page will be used for the ad creative.
                 </p>
+                <div id="deployContextInfo" class="alert alert-info" style="display:none;"></div>
                 <div class="form-group">
                     <label>Campaign Plan (JSON)</label>
                     <textarea id="deployPlan" style="min-height:200px; font-family: monospace; font-size:12px;" placeholder='Paste the campaign plan JSON here...'></textarea>
@@ -517,7 +680,7 @@
             </div>
         </div>
 
-        <!-- ═══ TAB: Settings ═══ -->
+        <!-- TAB: Settings -->
         <div id="tab-settings" class="tab-content">
             <div class="card">
                 <h2>Meta Ads Configuration</h2>
@@ -535,13 +698,22 @@
                         <input type="text" id="cfgAdAccountId" placeholder="act_XXXXXXXXXX">
                     </div>
                     <div class="form-group">
-                        <label>Page ID</label>
+                        <label>Default Page ID (override with brand selector above)</label>
                         <input type="text" id="cfgPageId" placeholder="Your Facebook Page ID">
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
                 <div id="configResults" style="margin-top:12px;"></div>
             </div>
+
+            <div class="card">
+                <h2>Brand Ad Account IDs</h2>
+                <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+                    Optionally set a different ad account ID per brand. Leave empty to use the default from above.
+                </p>
+                <div id="brandAdAccounts"></div>
+            </div>
+
             <div class="card">
                 <h2>Claude API</h2>
                 <p style="color:var(--text-secondary); font-size:13px;">
@@ -552,11 +724,11 @@
                 <h2>How to Get Meta Credentials</h2>
                 <ol style="color:var(--text-secondary); font-size:13px; line-height:2; padding-left:20px;">
                     <li>Go to <strong>Meta Business Suite</strong> &rarr; Business Settings</li>
-                    <li>Create a Meta App at <strong>developers.facebook.com</strong></li>
+                    <li>Create a Meta App at <strong>developers.facebook.com</strong> (App ID: <code style="background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">910390974704285</code>)</li>
                     <li>Add the <strong>Marketing API</strong> product to your app</li>
                     <li>Generate a <strong>User Access Token</strong> with ads_management permission</li>
                     <li>Find your <strong>Ad Account ID</strong> in Business Settings &rarr; Ad Accounts (format: act_XXXXXXXXXX)</li>
-                    <li>Find your <strong>Page ID</strong> in your Facebook Page &rarr; About &rarr; Page ID</li>
+                    <li>Select your <strong>Brand &amp; Page</strong> from the selector bar above</li>
                 </ol>
             </div>
         </div>
@@ -564,6 +736,12 @@
 
 <script>
 const API_BASE = '/api/meta-ads';
+
+// ── Global state ──
+let brandsData = [];
+let selectedBrandKey = '';
+let selectedPageCode = '';
+let selectedPageId = '';
 
 // ── Tab switching ──
 document.querySelectorAll('.tab').forEach(tab => {
@@ -592,6 +770,195 @@ function showLoading(id, show) {
 function showAlert(containerId, type, message) {
     document.getElementById(containerId).innerHTML =
         `<div class="alert alert-${type}">${message}</div>`;
+}
+
+// ── Brands ──
+async function loadBrands() {
+    try {
+        const data = await apiCall('/brands');
+        brandsData = data.brands;
+        renderBrandGrid();
+        populateBrandSelect();
+        renderBrandAdAccounts();
+    } catch (e) {
+        console.error('Failed to load brands:', e);
+    }
+}
+
+function renderBrandGrid() {
+    const grid = document.getElementById('brandGrid');
+    let html = '';
+    brandsData.forEach(brand => {
+        const mainPage = brand.pages.find(p => p.type === 'brand');
+        const showrooms = brand.pages.filter(p => p.type === 'showroom');
+        const selected = selectedBrandKey === brand.key ? ' selected' : '';
+        html += `
+        <div class="brand-card${selected}" onclick="selectBrand('${brand.key}')">
+            <h3>${esc(brand.name)}</h3>
+            <div class="page-count">${brand.pages.length} page${brand.pages.length > 1 ? 's' : ''} (${showrooms.length} showroom${showrooms.length !== 1 ? 's' : ''})</div>
+            <div class="page-list">
+                ${brand.pages.map(p => `<span class="page-chip${p.type === 'brand' ? ' main-page' : ''}">${esc(p.code)}</span>`).join('')}
+            </div>
+        </div>`;
+    });
+    grid.innerHTML = html;
+}
+
+function selectBrand(brandKey) {
+    selectedBrandKey = brandKey;
+    document.getElementById('brandSelect').value = brandKey;
+    onBrandChange();
+    renderBrandGrid();
+    showBrandDetail(brandKey);
+}
+
+function showBrandDetail(brandKey) {
+    const brand = brandsData.find(b => b.key === brandKey);
+    if (!brand) {
+        document.getElementById('brandDetailCard').style.display = 'none';
+        return;
+    }
+    document.getElementById('brandDetailCard').style.display = 'block';
+    document.getElementById('brandDetailTitle').textContent = `${brand.name} - Pages`;
+
+    let html = '';
+    brand.pages.forEach(p => {
+        const typeBadge = p.type === 'brand'
+            ? '<span class="page-type-badge page-type-brand">Brand</span>'
+            : '<span class="page-type-badge page-type-showroom">Showroom</span>';
+        html += `<tr>
+            <td><strong>${esc(p.code)}</strong></td>
+            <td>${esc(p.name)}</td>
+            <td>${typeBadge}</td>
+            <td>${esc(p.location)}</td>
+            <td><code style="font-size:12px; color:var(--accent);">${esc(p.page_id)}</code></td>
+            <td><button class="btn btn-sm btn-primary" onclick="selectPage('${brandKey}','${p.code}')">Select</button></td>
+        </tr>`;
+    });
+    document.getElementById('brandDetailPages').innerHTML = html;
+}
+
+function selectPage(brandKey, pageCode) {
+    selectedBrandKey = brandKey;
+    selectedPageCode = pageCode;
+    document.getElementById('brandSelect').value = brandKey;
+    onBrandChange();
+    document.getElementById('pageSelect').value = pageCode;
+    onPageChange();
+}
+
+function populateBrandSelect() {
+    const sel = document.getElementById('brandSelect');
+    sel.innerHTML = '<option value="">-- Select Brand --</option>';
+    brandsData.forEach(b => {
+        sel.innerHTML += `<option value="${b.key}">${esc(b.name)} (${b.code})</option>`;
+    });
+}
+
+function onBrandChange() {
+    const brandKey = document.getElementById('brandSelect').value;
+    selectedBrandKey = brandKey;
+    const pageSel = document.getElementById('pageSelect');
+    pageSel.innerHTML = '<option value="">-- Select Page --</option>';
+
+    const brand = brandsData.find(b => b.key === brandKey);
+    if (brand) {
+        brand.pages.forEach(p => {
+            const label = `${p.code} - ${p.name} (${p.type})`;
+            pageSel.innerHTML += `<option value="${p.code}">${esc(label)}</option>`;
+        });
+        // Auto-select the brand (main) page
+        const mainPage = brand.pages.find(p => p.type === 'brand');
+        if (mainPage) {
+            pageSel.value = mainPage.code;
+            onPageChange();
+        }
+    } else {
+        selectedPageCode = '';
+        selectedPageId = '';
+        updatePageInfo();
+    }
+
+    renderBrandGrid();
+    if (brandKey) showBrandDetail(brandKey);
+}
+
+function onPageChange() {
+    const pageCode = document.getElementById('pageSelect').value;
+    selectedPageCode = pageCode;
+
+    const brand = brandsData.find(b => b.key === selectedBrandKey);
+    if (brand && pageCode) {
+        const page = brand.pages.find(p => p.code === pageCode);
+        selectedPageId = page ? page.page_id : '';
+    } else {
+        selectedPageId = '';
+    }
+    updatePageInfo();
+    updateContextInfoBars();
+}
+
+function updatePageInfo() {
+    const info = document.getElementById('pageInfo');
+    if (selectedPageId) {
+        const brand = brandsData.find(b => b.key === selectedBrandKey);
+        const page = brand?.pages.find(p => p.code === selectedPageCode);
+        const typeBadge = page?.type === 'brand'
+            ? '<span class="page-type-badge page-type-brand">Brand</span>'
+            : '<span class="page-type-badge page-type-showroom">Showroom</span>';
+        info.innerHTML = `${typeBadge} <span class="page-id-chip">Page ID: ${selectedPageId}</span>`;
+    } else {
+        info.innerHTML = '';
+    }
+}
+
+function updateContextInfoBars() {
+    const genCtx = document.getElementById('genContextInfo');
+    const deployCtx = document.getElementById('deployContextInfo');
+    if (selectedBrandKey && selectedPageCode) {
+        const brand = brandsData.find(b => b.key === selectedBrandKey);
+        const page = brand?.pages.find(p => p.code === selectedPageCode);
+        const msg = `Generating for: <strong>${esc(brand?.name)}</strong> - ${esc(page?.name)} (${esc(selectedPageCode)})`;
+        genCtx.innerHTML = msg;
+        genCtx.style.display = 'block';
+        deployCtx.innerHTML = `Deploying to: <strong>${esc(brand?.name)}</strong> - ${esc(page?.name)} (Page ID: ${selectedPageId})`;
+        deployCtx.style.display = 'block';
+    } else {
+        genCtx.style.display = 'none';
+        deployCtx.style.display = 'none';
+    }
+}
+
+// ── Brand Ad Accounts (Settings) ──
+function renderBrandAdAccounts() {
+    const container = document.getElementById('brandAdAccounts');
+    let html = '';
+    brandsData.forEach(brand => {
+        html += `<div class="form-row" style="margin-bottom:10px;">
+            <div class="form-group" style="margin-bottom:0;">
+                <label>${esc(brand.name)} (${esc(brand.code)})</label>
+                <input type="text" id="brandAct_${brand.key}" value="${esc(brand.ad_account_id)}" placeholder="act_XXXXXXXXXX">
+            </div>
+            <div class="form-group" style="margin-bottom:0; display:flex; align-items:flex-end;">
+                <button class="btn btn-sm btn-outline" onclick="saveBrandAdAccount('${brand.key}')">Save</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+async function saveBrandAdAccount(brandKey) {
+    const input = document.getElementById(`brandAct_${brandKey}`);
+    try {
+        await apiCall('/brands/ad-account', 'POST', {
+            brand_key: brandKey,
+            ad_account_id: input.value.trim(),
+        });
+        input.style.borderColor = 'var(--success)';
+        setTimeout(() => { input.style.borderColor = ''; }, 2000);
+    } catch (e) {
+        input.style.borderColor = 'var(--danger)';
+    }
 }
 
 // ── Config ──
@@ -635,6 +1002,8 @@ function getGenInputs() {
         tone: document.getElementById('genTone').value,
         landing_page_url: document.getElementById('genLandingUrl').value,
         num_variations: parseInt(document.getElementById('genNumVariations').value),
+        brand_key: selectedBrandKey,
+        page_code: selectedPageCode,
     };
 }
 
@@ -752,6 +1121,8 @@ async function generateCampaign() {
             target_audience: inputs.target_audience,
             landing_page_url: inputs.landing_page_url,
             tone: inputs.tone,
+            brand_key: selectedBrandKey,
+            page_code: selectedPageCode,
         });
 
         let html = '<h3 style="margin:12px 0 8px; font-size:15px;">Full Campaign Plan</h3>';
@@ -888,6 +1259,8 @@ async function deployCampaign() {
             campaign_plan: plan,
             landing_page_url: document.getElementById('deployUrl').value,
             image_url: document.getElementById('deployImageUrl').value,
+            brand_key: selectedBrandKey,
+            page_code: selectedPageCode,
         });
 
         let html = '<div class="alert alert-success">Campaign deployed successfully (PAUSED). Review in Meta Ads Manager before activating.</div>';
@@ -921,6 +1294,7 @@ function esc(str) {
 
 // ── Init ──
 loadConfig();
+loadBrands();
 </script>
 </body>
 </html>
