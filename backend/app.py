@@ -15,6 +15,10 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file (META_ACCESS_TOKEN, etc.)
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
