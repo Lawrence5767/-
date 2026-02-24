@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Ads Manager - Claude AI</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #1e2a45;
+            --border: #2a3a5c;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0b8;
+            --accent: #4a90d9;
+            --accent-hover: #5ba0e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --meta-blue: #1877f2;
+            --claude-purple: #7c3aed;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .badge-meta { background: var(--meta-blue); color: white; }
+        .badge-claude { background: var(--claude-purple); color: white; }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover { background: var(--bg-card); color: var(--text-primary); }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { color: var(--text-primary); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea { resize: vertical; min-height: 80px; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+        }
+
+        button, .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-claude { background: var(--claude-purple); color: white; }
+        .btn-claude:hover { background: #8b5cf6; }
+        .btn-claude:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-meta { background: var(--meta-blue); color: white; }
+        .btn-meta:hover { background: #1a8aff; }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover { background: var(--bg-card); }
+
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.connected { background: var(--success); }
+        .status-dot.disconnected { background: var(--danger); }
+
+        .results-area {
+            margin-top: 16px;
+        }
+
+        .variation-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .variation-card h3 {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .variation-card .field-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            margin-top: 8px;
+        }
+
+        .variation-card .field-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .variation-card .cta-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--meta-blue);
+            color: white;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .variation-actions {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+        }
+
+        .campaign-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .campaign-table th, .campaign-table td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .campaign-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .campaign-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .status-ACTIVE { background: rgba(16,185,129,0.2); color: var(--success); }
+        .status-PAUSED { background: rgba(245,158,11,0.2); color: var(--warning); }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 12px 0;
+        }
+
+        .loading.active { display: flex; }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .alert-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: var(--success); }
+        .alert-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); }
+        .alert-info { background: rgba(74,144,217,0.15); border: 1px solid rgba(74,144,217,0.3); color: var(--accent); }
+
+        .strategy-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--claude-purple);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .strategy-box h3 {
+            color: var(--claude-purple);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .strategy-box p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .targeting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .targeting-item .name { font-weight: 500; font-size: 13px; }
+        .targeting-item .rationale { font-size: 12px; color: var(--text-secondary); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state p { margin-top: 8px; font-size: 14px; }
+
+        @media (max-width: 768px) {
+            .form-row, .form-row-3 { grid-template-columns: 1fr; }
+            .container { padding: 16px; }
+            .tabs { overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            Meta Ads Manager
+            <span class="badge badge-claude">Claude AI</span>
+            <span class="badge badge-meta">Meta API</span>
+        </h1>
+        <div class="header-actions">
+            <span id="configStatus">
+                <span class="status-dot disconnected"></span>
+                <span style="font-size:13px; color:var(--text-secondary); margin-left:4px;">Not configured</span>
+            </span>
+            <a href="/" class="nav-link">Trading Dashboard</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" data-tab="generate">AI Generate</button>
+            <button class="tab" data-tab="campaigns">Campaigns</button>
+            <button class="tab" data-tab="deploy">Deploy</button>
+            <button class="tab" data-tab="settings">Settings</button>
+        </div>
+
+        <!-- ═══ TAB: AI Generate ═══ -->
+        <div id="tab-generate" class="tab-content active">
+            <div class="card">
+                <h2>Generate Ad Content with Claude</h2>
+                <div class="form-group">
+                    <label>Product / Service Name</label>
+                    <input type="text" id="genProductName" placeholder="e.g. Gold Trading Signals">
+                </div>
+                <div class="form-group">
+                    <label>Product Description</label>
+                    <textarea id="genProductDesc" placeholder="Describe your product/service, key features, and value proposition..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Target Audience</label>
+                        <input type="text" id="genAudience" placeholder="e.g. Forex traders aged 25-45">
+                    </div>
+                    <div class="form-group">
+                        <label>Tone</label>
+                        <select id="genTone">
+                            <option value="professional">Professional</option>
+                            <option value="casual">Casual</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="friendly">Friendly</option>
+                            <option value="luxurious">Luxurious</option>
+                            <option value="educational">Educational</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Landing Page URL</label>
+                        <input type="url" id="genLandingUrl" placeholder="https://yoursite.com/landing">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Variations</label>
+                        <select id="genNumVariations">
+                            <option value="2">2 variations</option>
+                            <option value="3" selected>3 variations</option>
+                            <option value="5">5 variations</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-claude" id="btnGenCopy" onclick="generateAdCopy()">
+                        Generate Ad Copy
+                    </button>
+                    <button class="btn btn-claude" id="btnGenTargeting" onclick="generateTargeting()">
+                        Suggest Targeting
+                    </button>
+                    <button class="btn btn-claude" id="btnGenCampaign" onclick="generateCampaign()">
+                        Generate Full Campaign
+                    </button>
+                </div>
+
+                <div class="loading" id="genLoading">
+                    <div class="spinner"></div>
+                    <span>Claude is generating content...</span>
+                </div>
+
+                <div class="results-area" id="genResults"></div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: Campaigns ═══ -->
+        <div id="tab-campaigns" class="tab-content">
+            <div class="card">
+                <h2>
+                    Your Campaigns
+                    <button class="btn btn-sm btn-outline" onclick="loadCampaigns()" style="margin-left:auto;">Refresh</button>
+                </h2>
+                <div id="campaignsList">
+                    <div class="empty-state">
+                        <p>Configure your Meta credentials in Settings, then click Refresh.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: Deploy ═══ -->
+        <div id="tab-deploy" class="tab-content">
+            <div class="card">
+                <h2>Deploy Campaign to Meta</h2>
+                <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+                    First generate a full campaign plan in the AI Generate tab, then paste the plan here to deploy it to Meta Ads.
+                    Everything is created in PAUSED status for your review.
+                </p>
+                <div class="form-group">
+                    <label>Campaign Plan (JSON)</label>
+                    <textarea id="deployPlan" style="min-height:200px; font-family: monospace; font-size:12px;" placeholder='Paste the campaign plan JSON here...'></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Landing Page URL</label>
+                        <input type="url" id="deployUrl" placeholder="https://yoursite.com/landing">
+                    </div>
+                    <div class="form-group">
+                        <label>Ad Image URL (optional)</label>
+                        <input type="url" id="deployImageUrl" placeholder="https://yoursite.com/ad-image.jpg">
+                    </div>
+                </div>
+                <button class="btn btn-meta" id="btnDeploy" onclick="deployCampaign()">
+                    Deploy to Meta Ads (Paused)
+                </button>
+                <div class="loading" id="deployLoading">
+                    <div class="spinner"></div>
+                    <span>Deploying to Meta Ads...</span>
+                </div>
+                <div id="deployResults"></div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: Settings ═══ -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <h2>Meta Ads Configuration</h2>
+                <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+                    Enter your Meta Marketing API credentials. These are stored in-memory only (not persisted).
+                    You can also set them as environment variables: META_ACCESS_TOKEN, META_AD_ACCOUNT_ID, META_PAGE_ID.
+                </p>
+                <div class="form-group">
+                    <label>Access Token</label>
+                    <input type="password" id="cfgAccessToken" placeholder="Your Meta access token">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ad Account ID</label>
+                        <input type="text" id="cfgAdAccountId" placeholder="act_XXXXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>Page ID</label>
+                        <input type="text" id="cfgPageId" placeholder="Your Facebook Page ID">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+                <div id="configResults" style="margin-top:12px;"></div>
+            </div>
+            <div class="card">
+                <h2>Claude API</h2>
+                <p style="color:var(--text-secondary); font-size:13px;">
+                    The Claude API key must be set as an environment variable: <code style="background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">ANTHROPIC_API_KEY</code>
+                </p>
+            </div>
+            <div class="card">
+                <h2>How to Get Meta Credentials</h2>
+                <ol style="color:var(--text-secondary); font-size:13px; line-height:2; padding-left:20px;">
+                    <li>Go to <strong>Meta Business Suite</strong> &rarr; Business Settings</li>
+                    <li>Create a Meta App at <strong>developers.facebook.com</strong></li>
+                    <li>Add the <strong>Marketing API</strong> product to your app</li>
+                    <li>Generate a <strong>User Access Token</strong> with ads_management permission</li>
+                    <li>Find your <strong>Ad Account ID</strong> in Business Settings &rarr; Ad Accounts (format: act_XXXXXXXXXX)</li>
+                    <li>Find your <strong>Page ID</strong> in your Facebook Page &rarr; About &rarr; Page ID</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+<script>
+const API_BASE = '/api/meta-ads';
+
+// ── Tab switching ──
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+    });
+});
+
+// ── Helpers ──
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const resp = await fetch(`${API_BASE}${endpoint}`, opts);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'API request failed');
+    return data;
+}
+
+function showLoading(id, show) {
+    document.getElementById(id).classList.toggle('active', show);
+}
+
+function showAlert(containerId, type, message) {
+    document.getElementById(containerId).innerHTML =
+        `<div class="alert alert-${type}">${message}</div>`;
+}
+
+// ── Config ──
+async function loadConfig() {
+    try {
+        const cfg = await apiCall('/config');
+        const dot = document.querySelector('#configStatus .status-dot');
+        const label = document.querySelector('#configStatus span:last-child');
+        if (cfg.configured) {
+            dot.className = 'status-dot connected';
+            label.textContent = `Connected (${cfg.ad_account_id})`;
+        } else {
+            dot.className = 'status-dot disconnected';
+            label.textContent = 'Not configured';
+        }
+        if (cfg.ad_account_id) document.getElementById('cfgAdAccountId').value = cfg.ad_account_id;
+        if (cfg.page_id) document.getElementById('cfgPageId').value = cfg.page_id;
+    } catch (e) { /* ignore */ }
+}
+
+async function saveConfig() {
+    try {
+        const result = await apiCall('/config', 'POST', {
+            access_token: document.getElementById('cfgAccessToken').value,
+            ad_account_id: document.getElementById('cfgAdAccountId').value,
+            page_id: document.getElementById('cfgPageId').value,
+        });
+        showAlert('configResults', 'success', 'Configuration saved successfully.');
+        loadConfig();
+    } catch (e) {
+        showAlert('configResults', 'error', `Error: ${e.message}`);
+    }
+}
+
+// ── AI Generation ──
+function getGenInputs() {
+    return {
+        product_name: document.getElementById('genProductName').value,
+        product_description: document.getElementById('genProductDesc').value,
+        target_audience: document.getElementById('genAudience').value,
+        tone: document.getElementById('genTone').value,
+        landing_page_url: document.getElementById('genLandingUrl').value,
+        num_variations: parseInt(document.getElementById('genNumVariations').value),
+    };
+}
+
+async function generateAdCopy() {
+    const inputs = getGenInputs();
+    if (!inputs.product_name || !inputs.product_description) {
+        showAlert('genResults', 'error', 'Please fill in product name and description.');
+        return;
+    }
+    showLoading('genLoading', true);
+    document.getElementById('genResults').innerHTML = '';
+    try {
+        const data = await apiCall('/generate/ad-copy', 'POST', inputs);
+        let html = '<h3 style="margin:12px 0 8px; font-size:15px;">Ad Copy Variations</h3>';
+        data.variations.forEach((v, i) => {
+            html += `
+            <div class="variation-card">
+                <h3>Variation ${i + 1}</h3>
+                <div class="field-label">Headline</div>
+                <div class="field-value">${esc(v.headline)}</div>
+                <div class="field-label">Primary Text</div>
+                <div class="field-value">${esc(v.primary_text)}</div>
+                <div class="field-label">Description</div>
+                <div class="field-value">${esc(v.description)}</div>
+                <span class="cta-badge">${esc(v.call_to_action)}</span>
+            </div>`;
+        });
+        document.getElementById('genResults').innerHTML = html;
+    } catch (e) {
+        showAlert('genResults', 'error', `Error: ${e.message}`);
+    } finally {
+        showLoading('genLoading', false);
+    }
+}
+
+async function generateTargeting() {
+    const inputs = getGenInputs();
+    if (!inputs.product_name || !inputs.product_description) {
+        showAlert('genResults', 'error', 'Please fill in product name and description.');
+        return;
+    }
+    showLoading('genLoading', true);
+    document.getElementById('genResults').innerHTML = '';
+    try {
+        const data = await apiCall('/generate/targeting', 'POST', {
+            product_name: inputs.product_name,
+            product_description: inputs.product_description,
+            current_audience: inputs.target_audience,
+        });
+
+        let html = '<h3 style="margin:12px 0 8px; font-size:15px;">Targeting Suggestions</h3>';
+
+        // Demographics
+        const d = data.demographics;
+        html += `<div class="variation-card">
+            <h3>Demographics</h3>
+            <div class="field-label">Age Range</div>
+            <div class="field-value">${d.age_min} - ${d.age_max}</div>
+            <div class="field-label">Countries</div>
+            <div class="field-value">${d.geo_locations.countries.join(', ')}</div>
+            ${d.geo_locations.cities.length ? `<div class="field-label">Cities</div><div class="field-value">${d.geo_locations.cities.join(', ')}</div>` : ''}
+        </div>`;
+
+        // Interests
+        if (data.interests.length) {
+            html += '<h3 style="margin:12px 0 8px; font-size:14px; color:var(--text-secondary);">Interests</h3>';
+            data.interests.forEach(item => {
+                html += `<div class="targeting-item">
+                    <span class="name">${esc(item.name)}</span>
+                    <span class="rationale">${esc(item.rationale)}</span>
+                </div>`;
+            });
+        }
+
+        // Behaviors
+        if (data.behaviors.length) {
+            html += '<h3 style="margin:12px 0 8px; font-size:14px; color:var(--text-secondary);">Behaviors</h3>';
+            data.behaviors.forEach(item => {
+                html += `<div class="targeting-item">
+                    <span class="name">${esc(item.name)}</span>
+                    <span class="rationale">${esc(item.rationale)}</span>
+                </div>`;
+            });
+        }
+
+        // Strategy
+        html += `<div class="strategy-box">
+            <h3>Strategy Notes</h3>
+            <p>${esc(data.strategy_notes)}</p>
+        </div>`;
+
+        document.getElementById('genResults').innerHTML = html;
+    } catch (e) {
+        showAlert('genResults', 'error', `Error: ${e.message}`);
+    } finally {
+        showLoading('genLoading', false);
+    }
+}
+
+async function generateCampaign() {
+    const inputs = getGenInputs();
+    if (!inputs.product_name || !inputs.product_description) {
+        showAlert('genResults', 'error', 'Please fill in product name and description.');
+        return;
+    }
+    showLoading('genLoading', true);
+    document.getElementById('genResults').innerHTML = '';
+    try {
+        const data = await apiCall('/generate/campaign', 'POST', {
+            product_name: inputs.product_name,
+            product_description: inputs.product_description,
+            goal: 'awareness',
+            budget_dollars: 50.0,
+            duration_days: 7,
+            target_audience: inputs.target_audience,
+            landing_page_url: inputs.landing_page_url,
+            tone: inputs.tone,
+        });
+
+        let html = '<h3 style="margin:12px 0 8px; font-size:15px;">Full Campaign Plan</h3>';
+
+        // Campaign
+        html += `<div class="variation-card">
+            <h3>Campaign: ${esc(data.campaign.name)}</h3>
+            <div class="field-label">Objective</div>
+            <div class="field-value">${esc(data.campaign.objective)}</div>
+            <div class="field-label">Daily Budget</div>
+            <div class="field-value">$${(data.campaign.daily_budget_cents / 100).toFixed(2)}</div>
+        </div>`;
+
+        // Ad Set
+        html += `<div class="variation-card">
+            <h3>Ad Set: ${esc(data.ad_set.name)}</h3>
+            <div class="field-label">Optimization</div>
+            <div class="field-value">${esc(data.ad_set.optimization_goal)} / ${esc(data.ad_set.billing_event)}</div>
+            <div class="field-label">Targeting</div>
+            <div class="field-value">Ages ${data.ad_set.targeting.age_min}-${data.ad_set.targeting.age_max} | ${data.ad_set.targeting.geo_locations.countries.join(', ')}</div>
+            ${data.ad_set.targeting.interests ? `<div class="field-label">Interests</div><div class="field-value">${data.ad_set.targeting.interests.map(i => i.name).join(', ')}</div>` : ''}
+        </div>`;
+
+        // Creatives
+        html += '<h3 style="margin:12px 0 8px; font-size:14px; color:var(--text-secondary);">Ad Creatives</h3>';
+        data.ad_creatives.forEach((c, i) => {
+            html += `<div class="variation-card">
+                <h3>${esc(c.name)}</h3>
+                <div class="field-label">Headline</div>
+                <div class="field-value">${esc(c.headline)}</div>
+                <div class="field-label">Primary Text</div>
+                <div class="field-value">${esc(c.primary_text)}</div>
+                <div class="field-label">Description</div>
+                <div class="field-value">${esc(c.description)}</div>
+                <span class="cta-badge">${esc(c.call_to_action)}</span>
+            </div>`;
+        });
+
+        // Strategy
+        html += `<div class="strategy-box">
+            <h3>Campaign Strategy</h3>
+            <p>${esc(data.strategy_summary)}</p>
+        </div>`;
+
+        // Deploy button
+        html += `<div style="margin-top:16px;">
+            <button class="btn btn-meta" onclick="prefillDeploy('${btoa(JSON.stringify(data))}')">
+                Deploy This Campaign to Meta
+            </button>
+        </div>`;
+
+        document.getElementById('genResults').innerHTML = html;
+    } catch (e) {
+        showAlert('genResults', 'error', `Error: ${e.message}`);
+    } finally {
+        showLoading('genLoading', false);
+    }
+}
+
+function prefillDeploy(b64data) {
+    const data = JSON.parse(atob(b64data));
+    document.getElementById('deployPlan').value = JSON.stringify(data, null, 2);
+    document.getElementById('deployUrl').value = document.getElementById('genLandingUrl').value || '';
+    // Switch to deploy tab
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-tab="deploy"]').classList.add('active');
+    document.getElementById('tab-deploy').classList.add('active');
+}
+
+// ── Campaigns ──
+async function loadCampaigns() {
+    try {
+        const data = await apiCall('/campaigns');
+        if (!data.data || data.data.length === 0) {
+            document.getElementById('campaignsList').innerHTML =
+                '<div class="empty-state"><p>No campaigns found.</p></div>';
+            return;
+        }
+        let html = `<table class="campaign-table">
+            <thead><tr>
+                <th>Name</th><th>Objective</th><th>Status</th><th>Daily Budget</th><th>Created</th><th>Actions</th>
+            </tr></thead><tbody>`;
+
+        data.data.forEach(c => {
+            const budget = c.daily_budget ? `$${(parseInt(c.daily_budget) / 100).toFixed(2)}` : '-';
+            html += `<tr>
+                <td>${esc(c.name)}</td>
+                <td>${esc(c.objective || '-')}</td>
+                <td><span class="status-badge status-${c.status}">${c.status}</span></td>
+                <td>${budget}</td>
+                <td>${c.created_time ? new Date(c.created_time).toLocaleDateString() : '-'}</td>
+                <td><button class="btn btn-sm btn-outline" onclick="viewInsights('${c.id}')">Insights</button></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('campaignsList').innerHTML = html;
+    } catch (e) {
+        document.getElementById('campaignsList').innerHTML =
+            `<div class="alert alert-error">Error: ${esc(e.message)}</div>`;
+    }
+}
+
+async function viewInsights(campaignId) {
+    try {
+        const data = await apiCall(`/campaigns/${campaignId}/insights`);
+        alert(JSON.stringify(data, null, 2));
+    } catch (e) {
+        alert(`Error: ${e.message}`);
+    }
+}
+
+// ── Deploy ──
+async function deployCampaign() {
+    const planText = document.getElementById('deployPlan').value.trim();
+    if (!planText) {
+        showAlert('deployResults', 'error', 'Please paste a campaign plan JSON.');
+        return;
+    }
+    let plan;
+    try {
+        plan = JSON.parse(planText);
+    } catch (e) {
+        showAlert('deployResults', 'error', 'Invalid JSON. Please check the campaign plan format.');
+        return;
+    }
+
+    showLoading('deployLoading', true);
+    document.getElementById('deployResults').innerHTML = '';
+
+    try {
+        const result = await apiCall('/deploy-campaign', 'POST', {
+            campaign_plan: plan,
+            landing_page_url: document.getElementById('deployUrl').value,
+            image_url: document.getElementById('deployImageUrl').value,
+        });
+
+        let html = '<div class="alert alert-success">Campaign deployed successfully (PAUSED). Review in Meta Ads Manager before activating.</div>';
+        html += `<div class="variation-card">
+            <h3>Deployment Summary</h3>
+            <div class="field-label">Campaign ID</div>
+            <div class="field-value">${result.results.campaign?.id || 'N/A'}</div>
+            <div class="field-label">Ad Set ID</div>
+            <div class="field-value">${result.results.ad_set?.id || 'N/A'}</div>
+            <div class="field-label">Creatives Created</div>
+            <div class="field-value">${result.results.creatives?.length || 0}</div>
+            <div class="field-label">Ads Created</div>
+            <div class="field-value">${result.results.ads?.length || 0}</div>
+        </div>`;
+
+        document.getElementById('deployResults').innerHTML = html;
+    } catch (e) {
+        showAlert('deployResults', 'error', `Deployment error: ${e.message}`);
+    } finally {
+        showLoading('deployLoading', false);
+    }
+}
+
+// ── Utility ──
+function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// ── Init ──
+loadConfig();
+</script>
+</body>
+</html>

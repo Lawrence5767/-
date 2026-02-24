@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from mt5_service import DataStore
+from meta_ads_routes import router as meta_ads_router
 
 
 # --- Configuration ---
@@ -64,6 +65,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Meta Ads routes
+app.include_router(meta_ads_router)
+
 # Serve frontend
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
@@ -89,6 +93,11 @@ class PushPayload(BaseModel):
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+
+@app.get("/meta-ads")
+async def meta_ads_page():
+    return FileResponse(os.path.join(FRONTEND_DIR, "meta_ads.html"))
 
 
 @app.get("/api/status")
