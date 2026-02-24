@@ -42,7 +42,7 @@ def main():
         sys.exit(1)
 
     # Step 1: Build the authorization URL
-    redirect_uri = "https://localhost/callback"
+    redirect_uri = "https://www.novafurnishing.com/"
     auth_params = {
         "app_id": app_id,
         "redirect_uri": redirect_uri,
