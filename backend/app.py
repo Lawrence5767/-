@@ -15,14 +15,19 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header, HTTPException
+from fastapi import (
+    FastAPI,
+    Header,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
-
+from fastapi.staticfiles import StaticFiles
 from mt5_service import DataStore
-
+from pydantic import BaseModel
 
 # --- Configuration ---
 API_KEY = os.environ.get("TRACKER_API_KEY", "")  # Optional: protect push endpoint
@@ -49,7 +54,9 @@ async def lifespan(app: FastAPI):
     if API_KEY:
         print(f"[Tracker] API key is set - EA must send X-API-Key header")
     else:
-        print("[Tracker] No API key set - push endpoint is open (set TRACKER_API_KEY env var to secure)")
+        print(
+            "[Tracker] No API key set - push endpoint is open (set TRACKER_API_KEY env var to secure)"
+        )
     yield
     print("[Tracker] Shutting down")
 
@@ -86,6 +93,7 @@ class PushPayload(BaseModel):
 
 # --- REST Endpoints ---
 
+
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
@@ -102,6 +110,7 @@ async def get_status():
 
 # ----- EA Push Endpoint -----
 
+
 @app.post("/api/push")
 async def push_data(payload: PushPayload, x_api_key: Optional[str] = Header(None)):
     """Receive a snapshot of trade data from the MT5 Expert Advisor."""
@@ -117,6 +126,7 @@ async def push_data(payload: PushPayload, x_api_key: Optional[str] = Header(None
 
 # ----- Demo Data -----
 
+
 @app.post("/api/demo")
 async def load_demo():
     """Load sample demo data for testing the dashboard."""
@@ -130,6 +140,7 @@ async def load_demo():
 
 
 # ----- Read Endpoints -----
+
 
 @app.get("/api/account")
 async def get_account():
@@ -193,6 +204,7 @@ async def set_alerts(
 
 # --- WebSocket for real-time updates ---
 
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -247,41 +259,55 @@ def check_alerts(price_data: dict, positions: list, account: dict) -> list[dict]
     bid = price_data.get("bid", 0)
 
     if alert_config["price_upper"] and bid >= alert_config["price_upper"]:
-        triggered.append({
-            "type": "PRICE_UPPER",
-            "message": f"XAU/USD bid {bid:.2f} reached upper alert {alert_config['price_upper']:.2f}",
-            "severity": "warning",
-        })
+        triggered.append(
+            {
+                "type": "PRICE_UPPER",
+                "message": f"XAU/USD bid {bid:.2f} reached upper alert {alert_config['price_upper']:.2f}",
+                "severity": "warning",
+            }
+        )
 
     if alert_config["price_lower"] and bid <= alert_config["price_lower"]:
-        triggered.append({
-            "type": "PRICE_LOWER",
-            "message": f"XAU/USD bid {bid:.2f} reached lower alert {alert_config['price_lower']:.2f}",
-            "severity": "warning",
-        })
+        triggered.append(
+            {
+                "type": "PRICE_LOWER",
+                "message": f"XAU/USD bid {bid:.2f} reached lower alert {alert_config['price_lower']:.2f}",
+                "severity": "warning",
+            }
+        )
 
     total_pnl = sum(p.get("profit", 0) for p in positions)
     if alert_config["pnl_upper"] and total_pnl >= alert_config["pnl_upper"]:
-        triggered.append({
-            "type": "PNL_UPPER",
-            "message": f"Total P&L ${total_pnl:.2f} reached upper threshold ${alert_config['pnl_upper']:.2f}",
-            "severity": "success",
-        })
+        triggered.append(
+            {
+                "type": "PNL_UPPER",
+                "message": f"Total P&L ${total_pnl:.2f} reached upper threshold ${alert_config['pnl_upper']:.2f}",
+                "severity": "success",
+            }
+        )
 
     if alert_config["pnl_lower"] and total_pnl <= alert_config["pnl_lower"]:
-        triggered.append({
-            "type": "PNL_LOWER",
-            "message": f"Total P&L ${total_pnl:.2f} hit lower threshold ${alert_config['pnl_lower']:.2f}",
-            "severity": "danger",
-        })
+        triggered.append(
+            {
+                "type": "PNL_LOWER",
+                "message": f"Total P&L ${total_pnl:.2f} hit lower threshold ${alert_config['pnl_lower']:.2f}",
+                "severity": "danger",
+            }
+        )
 
     margin_level = account.get("margin_level", 0)
-    if alert_config["margin_level_lower"] and margin_level > 0 and margin_level <= alert_config["margin_level_lower"]:
-        triggered.append({
-            "type": "MARGIN_LOW",
-            "message": f"Margin level {margin_level:.1f}% below threshold {alert_config['margin_level_lower']:.1f}%",
-            "severity": "danger",
-        })
+    if (
+        alert_config["margin_level_lower"]
+        and margin_level > 0
+        and margin_level <= alert_config["margin_level_lower"]
+    ):
+        triggered.append(
+            {
+                "type": "MARGIN_LOW",
+                "message": f"Margin level {margin_level:.1f}% below threshold {alert_config['margin_level_lower']:.1f}%",
+                "severity": "danger",
+            }
+        )
 
     return triggered
 
@@ -303,10 +329,12 @@ async def websocket_endpoint(websocket: WebSocket):
                     for key in alert_config:
                         if key in data:
                             alert_config[key] = data[key]
-                    await websocket.send_json({
-                        "type": "alert_config_updated",
-                        "alerts": alert_config,
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "alert_config_updated",
+                            "alerts": alert_config,
+                        }
+                    )
                 elif data.get("action") == "refresh":
                     # Client requesting a refresh
                     payload = _build_ws_payload()
@@ -317,15 +345,18 @@ async def websocket_endpoint(websocket: WebSocket):
                     payload = _build_ws_payload()
                     await websocket.send_json(payload)
                 else:
-                    await websocket.send_json({
-                        "type": "status",
-                        "connected": False,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "status",
+                            "connected": False,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        }
+                    )
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

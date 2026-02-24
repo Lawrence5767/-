@@ -1,954 +1,1220 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <title>情人节快乐❤️</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <style>
-    html,body{
-      height:100%;
-      margin:0;
-      background:#0b0b12;
-      color:#fff;
-      overflow:hidden;
-      font-family: system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-    }
+  <head>
+    <meta charset="utf-8" />
+    <title>情人节快乐❤️</title>
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #0b0b12;
+        color: #fff;
+        overflow: hidden;
+        font-family:
+          system-ui,
+          -apple-system,
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
+      }
 
-    #errbar{
-      position:fixed; left:10px; top:10px; z-index:9999;
-      max-width:min(560px, 92vw);
-      padding:10px 12px;
-      border-radius:12px;
-      background: rgba(255,50,90,.22);
-      border:1px solid rgba(255,255,255,.18);
-      font-weight:800;
-      display:none;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
+      #errbar {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index: 9999;
+        max-width: min(560px, 92vw);
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 50, 90, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        font-weight: 800;
+        display: none;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
 
-    #fw{
-      position:fixed; inset:0; width:100%; height:100%;
-      z-index:1;
-      pointer-events:none;
-      filter: brightness(1.55);
-    }
+      #fw {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        pointer-events: none;
+        filter: brightness(1.55);
+      }
 
-    .overlay{
-      position:fixed; inset:0;
-      background: radial-gradient(1200px 800px at 50% 40%, rgba(255,79,163,.12), rgba(0,0,0,.34) 65%);
-      z-index:50;
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-      padding:20px 14px 26px;
-      box-sizing:border-box;
-    }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          1200px 800px at 50% 40%,
+          rgba(255, 79, 163, 0.12),
+          rgba(0, 0, 0, 0.34) 65%
+        );
+        z-index: 50;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px 14px 26px;
+        box-sizing: border-box;
+      }
 
-    .card{
-      width:min(560px, 92vw);
-      border-radius:22px;
-      padding:20px 16px 16px;
-      background: rgba(18,18,30,.86);
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      max-height: calc(100vh - 40px);
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-      box-sizing:border-box;
-    }
+      .card {
+        width: min(560px, 92vw);
+        border-radius: 22px;
+        padding: 20px 16px 16px;
+        background: rgba(18, 18, 30, 0.86);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        max-height: calc(100vh - 40px);
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+      }
 
-    .title{
-      font-size: clamp(24px, 6vw, 42px);
-      font-weight: 900;
-      text-shadow: 0 6px 18px rgba(0,0,0,.45);
-      display:flex; gap:10px; justify-content:center; align-items:center;
-      margin:2px 0 10px;
-    }
+      .title {
+        font-size: clamp(24px, 6vw, 42px);
+        font-weight: 900;
+        text-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        margin: 2px 0 10px;
+      }
 
-    .canvasWrap{
-      position:relative;
-      width:100%;
-      aspect-ratio:1/1;
-      border-radius:18px;
-      overflow:hidden;
-      background: radial-gradient(520px 520px at 50% 55%, rgba(255,79,163,.14), rgba(0,0,0,.70));
-      border: 1px solid rgba(255,255,255,.10);
-      max-height: 50vh;
-    }
-    canvas#c{ position:absolute; inset:0; width:100%; height:100%; display:block; }
-    .subLove{
-      position:absolute; right:14px; bottom:14px;
-      font-weight:900;
-      font-size: clamp(14px, 3.6vw, 18px);
-      color:#ffd6ea;
-      text-shadow: 0 6px 16px rgba(0,0,0,.55);
-      letter-spacing:.5px;
-    }
+      .canvasWrap {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1/1;
+        border-radius: 18px;
+        overflow: hidden;
+        background: radial-gradient(
+          520px 520px at 50% 55%,
+          rgba(255, 79, 163, 0.14),
+          rgba(0, 0, 0, 0.7)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-height: 50vh;
+      }
+      canvas#c {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .subLove {
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        font-weight: 900;
+        font-size: clamp(14px, 3.6vw, 18px);
+        color: #ffd6ea;
+        text-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+        letter-spacing: 0.5px;
+      }
 
-    .letter{
-      margin-top:14px;
-      padding:14px 14px;
-      border-radius:16px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-    }
-    .letterTitle{
-      font-weight:900;
-      font-size:16px;
-      display:flex; align-items:center; gap:8px;
-      margin:0 0 8px;
-      opacity:.95;
-    }
-    .letterBody{
-      white-space:pre-wrap;
-      line-height:1.65;
-      font-size:14px;
-      color: rgba(255,255,255,.92);
-    }
-    .letterSign{
-      margin-top:10px;
-      text-align:right;
-      font-weight:900;
-      color:#ffd6ea;
-      opacity:.95;
-    }
+      .letter {
+        margin-top: 14px;
+        padding: 14px 14px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .letterTitle {
+        font-weight: 900;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 8px;
+        opacity: 0.95;
+      }
+      .letterBody {
+        white-space: pre-wrap;
+        line-height: 1.65;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.92);
+      }
+      .letterSign {
+        margin-top: 10px;
+        text-align: right;
+        font-weight: 900;
+        color: #ffd6ea;
+        opacity: 0.95;
+      }
 
-    .topRightBtn{
-      position:fixed; top:12px; right:12px;
-      z-index:120;
-      display:flex; gap:10px; align-items:center;
-    }
-    .pill{
-      border:1px solid rgba(255,255,255,.18);
-      background: rgba(0,0,0,.40);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:999px;
-      font-weight:900;
-      cursor:pointer;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      user-select:none;
-      font-size:14px;
-    }
-    .pill:active{ transform: scale(.98); }
+      .topRightBtn {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 120;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .pill {
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.4);
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 999px;
+        font-weight: 900;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        user-select: none;
+        font-size: 14px;
+      }
+      .pill:active {
+        transform: scale(0.98);
+      }
 
-    .toast{
-      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-      padding:10px 14px; border-radius:999px;
-      background: rgba(0,0,0,.65);
-      border:1px solid rgba(255,255,255,.15);
-      font-weight:700; font-size:13px;
-      opacity:0; pointer-events:none; transition: opacity .25s ease;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index:140;
-      white-space:nowrap;
-    }
-    .toast.show{ opacity:1; }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-weight: 700;
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 140;
+        white-space: nowrap;
+      }
+      .toast.show {
+        opacity: 1;
+      }
 
-    .popWrap{ position:fixed; inset:0; pointer-events:none; z-index:130; }
-    .popWin{
-      position:absolute;
-      width:min(360px, 86vw);
-      border-radius:18px;
-      padding:12px 12px 10px;
-      background: rgba(15,15,25,.86);
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      pointer-events:auto;
-      transform: scale(.96);
-      opacity:0;
-      animation: popIn .22s ease forwards;
-    }
-    @keyframes popIn{ to { transform: scale(1); opacity:1; } }
-    .popBar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px; margin-bottom:8px; user-select:none; cursor:grab;
-    }
-    .popBar:active{ cursor:grabbing; }
-    .popTitle{ font-weight:900; font-size:14px; opacity:.95; display:flex; align-items:center; gap:8px; }
-    .popClose{
-      width:34px; height:34px; border-radius:999px;
-      background: rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.14);
-      color:#fff; font-size:18px; line-height:32px; cursor:pointer;
-      text-align:center;
-    }
-    .popBody{
-      white-space:pre-wrap; line-height:1.55; font-size:14px;
-      color: rgba(255,255,255,.92);
-      padding:10px 10px; border-radius:14px;
-      background: radial-gradient(800px 560px at 50% 0%, rgba(255,79,163,.12), rgba(255,255,255,.03));
-      border:1px solid rgba(255,255,255,.08);
-    }
-    .popFooter{ margin-top:10px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
-    .popMiniBtn{
-      border-radius:999px; padding:9px 12px;
-      background: rgba(255,255,255,.10);
-      color:white; border:1px solid rgba(255,255,255,.16);
-      font-weight:900; cursor:pointer; font-size:13px;
-    }
-    .popMiniBtn:active{ transform: scale(.98); }
+      .popWrap {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 130;
+      }
+      .popWin {
+        position: absolute;
+        width: min(360px, 86vw);
+        border-radius: 18px;
+        padding: 12px 12px 10px;
+        background: rgba(15, 15, 25, 0.86);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        pointer-events: auto;
+        transform: scale(0.96);
+        opacity: 0;
+        animation: popIn 0.22s ease forwards;
+      }
+      @keyframes popIn {
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .popBar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        user-select: none;
+        cursor: grab;
+      }
+      .popBar:active {
+        cursor: grabbing;
+      }
+      .popTitle {
+        font-weight: 900;
+        font-size: 14px;
+        opacity: 0.95;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .popClose {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #fff;
+        font-size: 18px;
+        line-height: 32px;
+        cursor: pointer;
+        text-align: center;
+      }
+      .popBody {
+        white-space: pre-wrap;
+        line-height: 1.55;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.92);
+        padding: 10px 10px;
+        border-radius: 14px;
+        background: radial-gradient(
+          800px 560px at 50% 0%,
+          rgba(255, 79, 163, 0.12),
+          rgba(255, 255, 255, 0.03)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .popFooter {
+        margin-top: 10px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .popMiniBtn {
+        border-radius: 999px;
+        padding: 9px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        font-weight: 900;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .popMiniBtn:active {
+        transform: scale(0.98);
+      }
 
-    /* ===== 欢迎页 ===== */
-    .splash{
-      position:fixed; inset:0; z-index:9000;
-      background: radial-gradient(ellipse at 50% 40%, #1a0a1a 0%, #0b0b12 100%);
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      cursor:pointer;
-      transition: opacity 0.8s ease, visibility 0.8s ease;
-    }
-    .splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
-    .splash-heart{
-      font-size: clamp(80px, 20vw, 140px);
-      animation: splashPulse 1.2s ease-in-out infinite;
-      filter: drop-shadow(0 0 40px rgba(255,50,120,0.6));
-    }
-    @keyframes splashPulse{
-      0%,100%{ transform: scale(1); }
-      50%{ transform: scale(1.12); }
-    }
-    .splash-text{
-      margin-top: 20px;
-      font-size: clamp(20px, 5vw, 32px);
-      font-weight: 900;
-      color: #ffd6ea;
-      text-shadow: 0 4px 20px rgba(255,50,120,0.4);
-      letter-spacing: 2px;
-    }
-    .splash-hint{
-      margin-top: 16px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.45);
-      animation: splashBlink 1.8s ease-in-out infinite;
-    }
-    @keyframes splashBlink{
-      0%,100%{ opacity:0.4; }
-      50%{ opacity:0.9; }
-    }
-  </style>
-</head>
+      /* ===== 欢迎页 ===== */
+      .splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        background: radial-gradient(
+          ellipse at 50% 40%,
+          #1a0a1a 0%,
+          #0b0b12 100%
+        );
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition:
+          opacity 0.8s ease,
+          visibility 0.8s ease;
+      }
+      .splash.hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .splash-heart {
+        font-size: clamp(80px, 20vw, 140px);
+        animation: splashPulse 1.2s ease-in-out infinite;
+        filter: drop-shadow(0 0 40px rgba(255, 50, 120, 0.6));
+      }
+      @keyframes splashPulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.12);
+        }
+      }
+      .splash-text {
+        margin-top: 20px;
+        font-size: clamp(20px, 5vw, 32px);
+        font-weight: 900;
+        color: #ffd6ea;
+        text-shadow: 0 4px 20px rgba(255, 50, 120, 0.4);
+        letter-spacing: 2px;
+      }
+      .splash-hint {
+        margin-top: 16px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.45);
+        animation: splashBlink 1.8s ease-in-out infinite;
+      }
+      @keyframes splashBlink {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 0.9;
+        }
+      }
+    </style>
+  </head>
 
-<body>
-  <!-- 欢迎页 -->
-  <div class="splash" id="splash">
-    <div class="splash-heart">💖</div>
-    <div class="splash-text">有一封情书给你</div>
-    <div class="splash-hint">点击屏幕打开</div>
-  </div>
+  <body>
+    <!-- 欢迎页 -->
+    <div class="splash" id="splash">
+      <div class="splash-heart">💖</div>
+      <div class="splash-text">有一封情书给你</div>
+      <div class="splash-hint">点击屏幕打开</div>
+    </div>
 
-  <!-- BGM -->
-  <audio id="bgm" loop preload="auto">
-    <source src="bgm.mp3" type="audio/mpeg">
-  </audio>
+    <!-- BGM -->
+    <audio id="bgm" loop preload="auto">
+      <source src="bgm.mp3" type="audio/mpeg" />
+    </audio>
 
-  <div id="errbar"></div>
-  <canvas id="fw"></canvas>
+    <div id="errbar"></div>
+    <canvas id="fw"></canvas>
 
-  <div class="topRightBtn">
-    <button class="pill" id="btnAuto">点我一下 ▶︎</button>
-  </div>
+    <div class="topRightBtn">
+      <button class="pill" id="btnAuto">点我一下 ▶︎</button>
+    </div>
 
-  <div class="overlay">
-    <div class="card">
-      <div class="title">情人节快乐 <span style="filter: drop-shadow(0 6px 18px rgba(255,45,85,.45));">❤️</span></div>
+    <div class="overlay">
+      <div class="card">
+        <div class="title">
+          情人节快乐
+          <span style="filter: drop-shadow(0 6px 18px rgba(255, 45, 85, 0.45))"
+            >❤️</span
+          >
+        </div>
 
-      <div class="canvasWrap">
-        <canvas id="c"></canvas>
-        <div class="subLove" id="subLove">情人节快乐❤️</div>
-      </div>
+        <div class="canvasWrap">
+          <canvas id="c"></canvas>
+          <div class="subLove" id="subLove">情人节快乐❤️</div>
+        </div>
 
-      <div class="letter">
-        <div class="letterTitle">💌 想说的话</div>
-        <div class="letterBody" id="letterBody">老肥：
-
-我每年都送你礼物，说实话我自己都觉得——
-我是不是太"物质"了😂
-
-今年我想送点不一样的：
-不是包包、不是花、也不是那些"看得见"的东西，
-而是一些更傻、更真、更像我的东西。
-
-我可能嘴笨、还会犯傻，
-有时候像个傻bi一样不会表达，
-但我对你的喜欢不是开玩笑的。
-
-我想把偏爱给你，把例外留给你，
-把你不开心的那一部分也分一点给我。
-
-情人节快乐❤️
-如果你愿意，给我一个机会——
-让我一直一直对你好。</div>
-        <div class="letterSign" id="letterSign">—— 爱你的小帅哥</div>
+        <div class="letter">
+          <div class="letterTitle">💌 想说的话</div>
+          <div class="letterBody" id="letterBody">
+            老肥： 我每年都送你礼物，说实话我自己都觉得—— 我是不是太"物质"了😂
+            今年我想送点不一样的： 不是包包、不是花、也不是那些"看得见"的东西，
+            而是一些更傻、更真、更像我的东西。 我可能嘴笨、还会犯傻，
+            有时候像个傻bi一样不会表达， 但我对你的喜欢不是开玩笑的。
+            我想把偏爱给你，把例外留给你， 把你不开心的那一部分也分一点给我。
+            情人节快乐❤️ 如果你愿意，给我一个机会—— 让我一直一直对你好。
+          </div>
+          <div class="letterSign" id="letterSign">—— 爱你的小帅哥</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="popWrap" id="popWrap"></div>
-  <div class="toast" id="toast">已复制</div>
+    <div class="popWrap" id="popWrap"></div>
+    <div class="toast" id="toast">已复制</div>
 
-<script>
-(function(){
-  "use strict";
+    <script>
+      (function () {
+        "use strict";
 
-  var errbar = document.getElementById("errbar");
-  function showErr(msg){
-    errbar.style.display = "block";
-    errbar.textContent = "\u26a0\ufe0f " + msg;
-  }
-  window.onerror = function(message, source, lineno, colno){
-    showErr(String(message) + " @ " + (lineno||"?") + ":" + (colno||"?"));
-    return false;
-  };
-
-  function escapeHtml(str){
-    str = String(str);
-    return str
-      .replace(/&/g,"&amp;")
-      .replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;")
-      .replace(/'/g,"&#039;");
-  }
-  function rand(a,b){ return a + Math.random()*(b-a); }
-
-  try{
-    /* ===== URL 参数读取 ===== */
-    var params = new URLSearchParams(window.location.search);
-    var to   = params.get("to")   || "\u8001\u80a5";
-    var from = params.get("from") || "\u7231\u4f60\u7684\u5c0f\u5e05\u54e5";
-
-    document.getElementById("subLove").textContent = to ? ("\u60c5\u4eba\u8282\u5feb\u4e50\uff0c" + to + " \u2764\ufe0f") : "\u60c5\u4eba\u8282\u5feb\u4e50\u2764\ufe0f";
-    document.getElementById("letterSign").textContent = from ? ("\u2014\u2014 " + from) : "\u2014\u2014 \u6211";
-
-    /* 替换信中的称呼 */
-    var letterEl = document.getElementById("letterBody");
-    letterEl.textContent = letterEl.textContent.replace(/老肥/g, to);
-
-    var toast = document.getElementById("toast");
-    var toastTimer = null;
-    function showToast(t){
-      toast.textContent = t;
-      toast.classList.add("show");
-      if(toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 1400);
-    }
-
-    /* 情话 */
-    var LINES = [
-      to + "\uff0c\u60c5\u4eba\u8282\u5feb\u4e50\u2764\ufe0f",
-      "\u6211\u4e0d\u662f\u4e09\u5206\u949f\u70ed\u5ea6\uff0c\u6211\u662f\u5bf9\u4f60\u8ba4\u771f\u3002",
-      "\u8ba4\u8bc6\u4f60\u4ee5\u540e\uff0c\u6211\u7684\u5feb\u4e50\u53d8\u5f97\u66f4\u5177\u4f53\u4e86\u3002",
-      "\u4f60\u4e00\u7b11\uff0c\u6211\u5c31\u89c9\u5f97\u4eca\u5929\u503c\u4e86\u3002",
-      "\u6211\u60f3\u628a\u504f\u7231\u548c\u4f8b\u5916\u90fd\u7ed9\u4f60\u3002",
-      "\u5982\u679c\u53ef\u4ee5\uff0c\u6211\u60f3\u4e00\u76f4\u4e00\u76f4\u5bf9\u4f60\u597d\u3002",
-      "\u6211\u60f3\u5f88\u8ba4\u771f\u8ddf\u4f60\u8bf4\uff1a\u6211\u771f\u7684\u597d\u559c\u6b22\u4f60\u3002",
-      "\u4f60\u613f\u4e0d\u613f\u610f\u7ed9\u6211\u4e00\u4e2a\u673a\u4f1a\uff1f",
-      "\u6211\u60f3\u628a\u6211\u6240\u6709\u7684\u6e29\u67d4\uff0c\u90fd\u7559\u7ed9\u4f60\u3002",
-      "\u4f60\u4e0d\u7528\u591a\u597d\uff0c\u4f60\u5728\u6211\u5fc3\u91cc\u5c31\u662f\u6700\u597d\u3002",
-      "\u6211\u559c\u6b22\u4f60\u4e0d\u662f\u56e0\u4e3a\u4f60\u5b8c\u7f8e\uff0c\u800c\u662f\u56e0\u4e3a\u4f60\u521a\u597d\u662f\u4f60\u3002",
-      "\u5982\u679c\u4eca\u5929\u6709\u597d\u8fd0\uff0c\u90a3\u4e00\u5b9a\u662f\u56e0\u4e3a\u9047\u89c1\u4f60\u3002",
-      "\u6211\u60f3\u548c\u4f60\u4e00\u8d77\uff0c\u628a\u5e73\u51e1\u7684\u65e5\u5b50\u8fc7\u6210\u6d6a\u6f2b\u3002",
-      "\u4f60\u662f\u6211\u60f3\u8ba4\u771f\u7ecf\u8425\u7684\u90a3\u4e2a\u4eba\u3002",
-      "\u4f60\u7684\u51fa\u73b0\uff0c\u8ba9\u6211\u5f00\u59cb\u671f\u5f85\u660e\u5929\u3002",
-      "\u6211\u4e0d\u592a\u4f1a\u8bf4\u60c5\u8bdd\uff0c\u4f46\u6211\u4f1a\u4e00\u76f4\u5bf9\u4f60\u597d\u3002",
-      "\u6211\u60f3\u7275\u7740\u4f60\u7684\u624b\uff0c\u8d70\u5f88\u8fdc\u5f88\u8fdc\u3002",
-      "\u53ef\u4ee5\u4e0d\u53ef\u4ee5\uff0c\u628a\u4f60\u7684\u4ee5\u540e\u5206\u6211\u4e00\u70b9\u70b9\uff1f"
-    ];
-    var lineIdx = 0;
-    function nextLine(){ var s = LINES[lineIdx % LINES.length]; lineIdx++; return s; }
-
-    /* ================== 烟花 ================== */
-    var fw = document.getElementById("fw");
-    var fctx = fw.getContext("2d");
-    var fDPR = 1, fW=0, fH=0;
-    var sparks = [];
-
-    var SPARKS_MAX = 10000;
-    var AMBIENT_MS = 10;
-    var BIG_MS = 100;
-    var lastAmbient = 0;
-    var lastBig = 0;
-
-    var SAFE_SPARKS_CAP = 3500;
-    function sparksCap(){ return Math.min(SPARKS_MAX, SAFE_SPARKS_CAP); }
-
-    function fwResize(){
-      fDPR = 1;
-      fW = Math.floor(window.innerWidth * fDPR);
-      fH = Math.floor(window.innerHeight * fDPR);
-      fw.width = fW;
-      fw.height = fH;
-    }
-    window.addEventListener("resize", fwResize, {passive:true});
-    fwResize();
-
-    function launchFirework(strong){
-      var x = rand(0.08, 0.92) * fW;
-      var y = (strong ? rand(0.10, 0.52) : rand(0.14, 0.76)) * fH;
-
-      var count = strong ? Math.floor(rand(34, 48)) : Math.floor(rand(18, 26));
-      var baseHue = rand(320, 360);
-
-      for(var i=0;i<count;i++){
-        var ang = rand(0, Math.PI*2);
-        var spd = (strong ? rand(2.0, 3.5) : rand(1.1, 2.2));
-        sparks.push({
-          x:x, y:y,
-          vx: Math.cos(ang)*spd,
-          vy: Math.sin(ang)*spd,
-          life: strong ? rand(22, 34) : rand(16, 26),
-          hue: baseHue + rand(-14, 14),
-          a: rand(0.65, 1),
-          r: (strong ? rand(1.0, 1.8) : rand(0.8, 1.3))
-        });
-      }
-
-      var cap = sparksCap();
-      if(sparks.length > cap) sparks.splice(0, sparks.length - cap);
-    }
-
-    function fwDraw(){
-      var t = Date.now();
-
-      fctx.globalCompositeOperation = "source-over";
-      fctx.fillStyle = "rgba(0,0,0,0.06)";
-      fctx.fillRect(0,0,fW,fH);
-
-      var steps = 0;
-      while(t - lastAmbient >= AMBIENT_MS && steps < 6){
-        lastAmbient += AMBIENT_MS;
-        launchFirework(false);
-        launchFirework(false);
-        steps++;
-      }
-
-      steps = 0;
-      while(t - lastBig >= BIG_MS && steps < 3){
-        lastBig += BIG_MS;
-        launchFirework(true);
-        steps++;
-      }
-
-      fctx.globalCompositeOperation = "lighter";
-      for(var i=sparks.length-1;i>=0;i--){
-        var p = sparks[i];
-        p.x += p.vx; p.y += p.vy;
-        p.vx *= 0.985; p.vy *= 0.985;
-        p.vy += 0.020;
-        p.life -= 1;
-        p.a *= 0.985;
-
-        if(p.life <= 0 || p.a < 0.05){ sparks.splice(i,1); continue; }
-
-        fctx.globalAlpha = p.a;
-
-        fctx.beginPath();
-        fctx.arc(p.x, p.y, p.r*2.2, 0, Math.PI*2);
-        fctx.fillStyle = "hsla(" + p.hue + ",95%,62%,0.12)";
-        fctx.fill();
-
-        fctx.beginPath();
-        fctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-        fctx.fillStyle = "hsla(" + p.hue + ",95%,72%,1)";
-        fctx.fill();
-      }
-      fctx.globalAlpha = 1;
-
-      requestAnimationFrame(fwDraw);
-    }
-
-    lastAmbient = Date.now();
-    lastBig = Date.now();
-    setTimeout(function(){
-      for(var k=0;k<10;k++){
-        setTimeout(function(){ launchFirework(true); }, k*80);
-      }
-    }, 220);
-
-    fwDraw();
-
-    /* ================== 心形（震撼升级版） ================== */
-    var canvas = document.getElementById("c");
-    var ctx = canvas.getContext("2d");
-    var DPR = 1, W=0, H=0;
-    var outline = [], particles = [], sparkle = [];
-    var flowParticles = [];  /* 沿轮廓流动的光点 */
-    var burstParticles = []; /* 从中心向外爆发的粒子 */
-    var innerFill = [];      /* 心形内部填充粒子 */
-    var heartBeat = 0;       /* 心跳节拍 */
-
-    function heartPoint(tt){
-      var x = 16 * Math.pow(Math.sin(tt), 3);
-      var y = 13 * Math.cos(tt) - 5 * Math.cos(2*tt) - 2 * Math.cos(3*tt) - Math.cos(4*tt);
-      return {x:x, y:y};
-    }
-    /* 判断点是否在心形内部 */
-    function isInsideHeart(px, py){
-      var nx = px / 16;
-      var ny = py / 16;
-      var v = nx*nx + ny*ny - 1;
-      return (v*v*v - nx*nx*ny*ny*ny) <= 0;
-    }
-    function center(){ return { x: W*0.5, y: H*0.55 }; }
-
-    function resizeHeart(){
-      DPR = 1;
-      var rect = canvas.getBoundingClientRect();
-      W = Math.max(1, Math.floor(rect.width * DPR));
-      H = Math.max(1, Math.floor(rect.height * DPR));
-      canvas.width = W; canvas.height = H;
-      buildOutline();
-      if(particles.length === 0) initParticles();
-    }
-    window.addEventListener("resize", resizeHeart, {passive:true});
-
-    var heartScale = function(){ return Math.min(W,H) * 0.022; };
-
-    function buildOutline(){
-      outline = [];
-      var steps = 360;
-      var sc = heartScale();
-      var c = center();
-      for(var i=0;i<steps;i++){
-        var tt = (i/steps) * Math.PI*2;
-        var p = heartPoint(tt);
-        outline.push({
-          x: c.x + p.x*sc,
-          y: c.y - p.y*sc,
-          baseX: c.x + p.x*sc,
-          baseY: c.y - p.y*sc,
-          r: rand(1.2, 2.2),
-          a: rand(0.55, 0.90),
-          tw: rand(0.003, 0.008),
-          hue: rand(330, 358),
-          phase: rand(0, Math.PI*2)
-        });
-      }
-    }
-
-    /* 轮廓流光粒子 */
-    function makeFlowParticle(){
-      var angle = rand(0, Math.PI*2);
-      var sc = heartScale();
-      var c = center();
-      var p = heartPoint(angle);
-      return {
-        angle: angle,
-        speed: rand(0.008, 0.018),
-        x: c.x + p.x*sc,
-        y: c.y - p.y*sc,
-        r: rand(2.0, 4.0),
-        a: rand(0.6, 1.0),
-        hue: rand(330, 360),
-        trail: []
-      };
-    }
-
-    /* 内部填充粒子 */
-    function makeInnerParticle(){
-      var sc = heartScale();
-      var c = center();
-      var px, py, hx, hy;
-      for(var attempt=0; attempt<50; attempt++){
-        hx = rand(-16, 16);
-        hy = rand(-16, 16);
-        if(isInsideHeart(hx, -hy)){
-          px = c.x + hx * sc;
-          py = c.y + hy * sc;
-          return {
-            x: px, y: py,
-            baseX: px, baseY: py,
-            r: rand(0.5, 1.5),
-            a: rand(0.06, 0.22),
-            tw: rand(0.002, 0.006),
-            drift: rand(0.3, 1.2),
-            phase: rand(0, Math.PI*2),
-            hue: rand(330, 355)
-          };
+        var errbar = document.getElementById("errbar");
+        function showErr(msg) {
+          errbar.style.display = "block";
+          errbar.textContent = "\u26a0\ufe0f " + msg;
         }
-      }
-      return { x: c.x, y: c.y, baseX: c.x, baseY: c.y, r:0.8, a:0.1, tw:0.004, drift:0.5, phase:0, hue:340 };
-    }
+        window.onerror = function (message, source, lineno, colno) {
+          showErr(
+            String(message) + " @ " + (lineno || "?") + ":" + (colno || "?"),
+          );
+          return false;
+        };
 
-    function makeParticle(){
-      var tt = rand(0, Math.PI*2);
-      var p = heartPoint(tt);
-      var sc = heartScale();
-      var c = center();
-      var cx = c.x + p.x*sc;
-      var cy = c.y - p.y*sc;
-      return {
-        x: cx + rand(-4,4),
-        y: cy + rand(-4,4),
-        vx: rand(-0.15, 0.15),
-        vy: rand(-0.15, 0.15),
-        r: rand(0.8, 2.0),
-        a: rand(0.35, 0.85),
-        life: rand(160, 380),
-        hue: rand(325, 358)
-      };
-    }
-
-    /* 爆发粒子（从中心射向轮廓方向） */
-    function makeBurstParticle(){
-      var tt = rand(0, Math.PI*2);
-      var p = heartPoint(tt);
-      var sc = heartScale();
-      var c = center();
-      var tx = c.x + p.x*sc;
-      var ty = c.y - p.y*sc;
-      var dx = tx - c.x, dy = ty - c.y;
-      var dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      var speed = rand(0.4, 1.6);
-      return {
-        x: c.x + rand(-3,3),
-        y: c.y + rand(-3,3),
-        vx: (dx/dist) * speed,
-        vy: (dy/dist) * speed,
-        r: rand(0.6, 1.8),
-        a: rand(0.5, 1.0),
-        life: rand(60, 140),
-        hue: rand(330, 360)
-      };
-    }
-
-    function makeSpark(){ return { x: rand(0,W), y: rand(0,H), vy: rand(0.06,0.14), r: rand(0.5,1.4), a: rand(0.04,0.14), tw: rand(0.001,0.005) }; }
-
-    function initParticles(){
-      particles = []; sparkle = []; flowParticles = []; innerFill = [];
-      for(var i=0;i<280;i++) particles.push(makeParticle());
-      for(var j=0;j<100;j++) sparkle.push(makeSpark());
-      for(var k=0;k<8;k++) flowParticles.push(makeFlowParticle());
-      for(var f=0;f<200;f++) innerFill.push(makeInnerParticle());
-    }
-
-    function drawHeart(){
-      var now = performance.now ? performance.now() : Date.now();
-
-      /* 心跳：每 800ms 一个周期 */
-      heartBeat = now * 0.001 * Math.PI * 2 / 0.8;
-      var beatScale = 1.0 + Math.pow(Math.max(0, Math.sin(heartBeat)), 3) * 0.06;
-
-      ctx.clearRect(0,0,W,H);
-
-      /* 背景渐变 */
-      var bg = ctx.createRadialGradient(W*0.5, H*0.55, 0, W*0.5, H*0.55, Math.max(W,H)*0.65);
-      bg.addColorStop(0, "rgba(255,60,140,0.14)");
-      bg.addColorStop(0.4, "rgba(180,20,80,0.06)");
-      bg.addColorStop(1, "rgba(0,0,0,0.60)");
-      ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
-
-      /* 心跳光晕 - 大范围脉冲辉光 */
-      var glowA = Math.pow(Math.max(0, Math.sin(heartBeat)), 4) * 0.25;
-      var c = center();
-      var glowR = Math.min(W,H) * 0.42 * beatScale;
-      var glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, glowR);
-      glow.addColorStop(0, "rgba(255,50,120," + (glowA * 0.8) + ")");
-      glow.addColorStop(0.3, "rgba(255,80,150," + (glowA * 0.4) + ")");
-      glow.addColorStop(0.6, "rgba(200,30,100," + (glowA * 0.15) + ")");
-      glow.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = glow;
-      ctx.fillRect(0,0,W,H);
-
-      /* 背景星尘 */
-      for(var k=0;k<sparkle.length;k++){
-        var s = sparkle[k];
-        s.y += s.vy;
-        if(s.y > H + 10){ s.y = -10; s.x = rand(0,W); }
-        var sa = s.a + Math.sin(now * s.tw) * 0.04;
-        ctx.globalAlpha = Math.max(0, sa);
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-        ctx.fillStyle = "rgba(255,210,235,1)";
-        ctx.fill();
-      }
-
-      /* 内部填充粒子（呼吸浮动） */
-      ctx.globalCompositeOperation = "lighter";
-      for(var ff=0;ff<innerFill.length;ff++){
-        var ip = innerFill[ff];
-        ip.x = ip.baseX + Math.sin(now * ip.tw + ip.phase) * ip.drift * beatScale;
-        ip.y = ip.baseY + Math.cos(now * ip.tw * 1.3 + ip.phase) * ip.drift * beatScale;
-        var ia = ip.a * (0.7 + Math.pow(Math.max(0, Math.sin(heartBeat)), 2) * 0.6);
-        ctx.globalAlpha = ia;
-        ctx.beginPath(); ctx.arc(ip.x, ip.y, ip.r * beatScale, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + ip.hue + ",90%,65%,1)";
-        ctx.fill();
-      }
-
-      /* 轮廓（加粗+跳动缩放） */
-      var sc = heartScale();
-      for(var q=0;q<outline.length;q++){
-        var o = outline[q];
-        /* 根据心跳微调位置 */
-        var tt = (q/outline.length) * Math.PI*2;
-        var hp = heartPoint(tt);
-        o.x = c.x + hp.x * sc * beatScale;
-        o.y = c.y - hp.y * sc * beatScale;
-
-        var oa = o.a + Math.sin(now * o.tw + o.phase) * 0.12;
-        oa = oa * (0.8 + Math.pow(Math.max(0, Math.sin(heartBeat)), 2) * 0.4);
-
-        /* 外发光 */
-        ctx.globalAlpha = oa * 0.3;
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 3.5, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + o.hue + ",95%,60%,0.15)";
-        ctx.fill();
-
-        /* 中发光 */
-        ctx.globalAlpha = oa * 0.6;
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 2.0, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + o.hue + ",95%,68%,0.4)";
-        ctx.fill();
-
-        /* 内核 */
-        ctx.globalAlpha = oa;
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + o.hue + ",95%,78%,1)";
-        ctx.fill();
-      }
-
-      /* 流光粒子（沿轮廓跑的亮点+拖尾） */
-      for(var fi=0;fi<flowParticles.length;fi++){
-        var fp = flowParticles[fi];
-        fp.angle += fp.speed;
-        if(fp.angle > Math.PI*2) fp.angle -= Math.PI*2;
-        var fhp = heartPoint(fp.angle);
-        fp.x = c.x + fhp.x * sc * beatScale;
-        fp.y = c.y - fhp.y * sc * beatScale;
-
-        /* 保存拖尾 */
-        fp.trail.push({x:fp.x, y:fp.y});
-        if(fp.trail.length > 18) fp.trail.shift();
-
-        /* 画拖尾 */
-        for(var ti=0;ti<fp.trail.length;ti++){
-          var trailA = (ti / fp.trail.length) * fp.a * 0.5;
-          var trailR = fp.r * (ti / fp.trail.length) * 0.6;
-          ctx.globalAlpha = trailA;
-          ctx.beginPath(); ctx.arc(fp.trail[ti].x, fp.trail[ti].y, trailR, 0, Math.PI*2);
-          ctx.fillStyle = "hsla(" + fp.hue + ",95%,75%,1)";
-          ctx.fill();
+        function escapeHtml(str) {
+          str = String(str);
+          return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+        function rand(a, b) {
+          return a + Math.random() * (b - a);
         }
 
-        /* 流光主体 + 大光晕 */
-        ctx.globalAlpha = fp.a * 0.3;
-        ctx.beginPath(); ctx.arc(fp.x, fp.y, fp.r * 4, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + fp.hue + ",95%,70%,0.2)";
-        ctx.fill();
+        try {
+          /* ===== URL 参数读取 ===== */
+          var params = new URLSearchParams(window.location.search);
+          var to = params.get("to") || "\u8001\u80a5";
+          var from =
+            params.get("from") || "\u7231\u4f60\u7684\u5c0f\u5e05\u54e5";
 
-        ctx.globalAlpha = fp.a;
-        ctx.beginPath(); ctx.arc(fp.x, fp.y, fp.r, 0, Math.PI*2);
-        ctx.fillStyle = "#fff";
-        ctx.fill();
-      }
+          document.getElementById("subLove").textContent = to
+            ? "\u60c5\u4eba\u8282\u5feb\u4e50\uff0c" + to + " \u2764\ufe0f"
+            : "\u60c5\u4eba\u8282\u5feb\u4e50\u2764\ufe0f";
+          document.getElementById("letterSign").textContent = from
+            ? "\u2014\u2014 " + from
+            : "\u2014\u2014 \u6211";
 
-      /* 散布粒子 */
-      for(var m=0;m<particles.length;m++){
-        var p = particles[m];
-        p.x += p.vx; p.y += p.vy;
-        p.life -= 1;
-        if(p.life <= 0) particles[m] = makeParticle();
-        p = particles[m];
-        ctx.globalAlpha = p.a * 0.7;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 1.8, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + p.hue + ",90%,60%,0.15)";
-        ctx.fill();
-        ctx.globalAlpha = p.a;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + p.hue + ",95%,70%,1)";
-        ctx.fill();
-      }
+          /* 替换信中的称呼 */
+          var letterEl = document.getElementById("letterBody");
+          letterEl.textContent = letterEl.textContent.replace(/老肥/g, to);
 
-      /* 爆发粒子 - 心跳高峰时喷射 */
-      var beatPhase = Math.sin(heartBeat);
-      if(beatPhase > 0.95 && burstParticles.length < 60){
-        for(var bi=0;bi<12;bi++) burstParticles.push(makeBurstParticle());
-      }
-      for(var bj=burstParticles.length-1;bj>=0;bj--){
-        var bp = burstParticles[bj];
-        bp.x += bp.vx; bp.y += bp.vy;
-        bp.life -= 1; bp.a *= 0.98;
-        if(bp.life <= 0 || bp.a < 0.03){ burstParticles.splice(bj,1); continue; }
-        ctx.globalAlpha = bp.a * 0.4;
-        ctx.beginPath(); ctx.arc(bp.x, bp.y, bp.r * 2.5, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + bp.hue + ",90%,65%,0.2)";
-        ctx.fill();
-        ctx.globalAlpha = bp.a;
-        ctx.beginPath(); ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI*2);
-        ctx.fillStyle = "hsla(" + bp.hue + ",95%,80%,1)";
-        ctx.fill();
-      }
-
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
-      requestAnimationFrame(drawHeart);
-    }
-
-    resizeHeart();
-    drawHeart();
-
-    /* ================== 弹窗 ================== */
-    var popWrap = document.getElementById("popWrap");
-    var z = 200;
-
-    function randomPos(w, h){
-      var pad = 14, topPad = 60;
-      var maxX = Math.max(pad, window.innerWidth - w - pad);
-      var maxY = Math.max(pad + topPad, window.innerHeight - h - pad);
-      return {
-        x: Math.floor(Math.random() * (maxX - pad + 1)) + pad,
-        y: Math.floor(Math.random() * (maxY - (pad + topPad) + 1)) + (pad + topPad)
-      };
-    }
-    function bringToFront(el){ z += 1; el.style.zIndex = z; }
-
-    function makeDraggable(win, handle){
-      var dragging=false, startX=0, startY=0, origX=0, origY=0;
-      function down(ev){
-        dragging = true;
-        bringToFront(win);
-        var p = ev.touches ? ev.touches[0] : ev;
-        startX = p.clientX; startY = p.clientY;
-        var rect = win.getBoundingClientRect();
-        origX = rect.left; origY = rect.top;
-        if(ev.preventDefault) ev.preventDefault();
-      }
-      function move(ev){
-        if(!dragging) return;
-        var p = ev.touches ? ev.touches[0] : ev;
-        var dx = p.clientX - startX;
-        var dy = p.clientY - startY;
-
-        var rect = win.getBoundingClientRect();
-        var ww = rect.width, hh = rect.height;
-        var pad = 8;
-
-        var nx = origX + dx;
-        var ny = origY + dy;
-        nx = Math.max(pad, Math.min(window.innerWidth - ww - pad, nx));
-        ny = Math.max(pad, Math.min(window.innerHeight - hh - pad, ny));
-
-        win.style.left = nx + "px";
-        win.style.top  = ny + "px";
-      }
-      function up(){ dragging=false; }
-
-      handle.addEventListener("mousedown", down);
-      window.addEventListener("mousemove", move);
-      window.addEventListener("mouseup", up);
-
-      handle.addEventListener("touchstart", down, {passive:false});
-      window.addEventListener("touchmove", move, {passive:false});
-      window.addEventListener("touchend", up);
-    }
-
-    function createPopWin(text){
-      var win = document.createElement("div");
-      win.className = "popWin";
-
-      var titleText = to ? ("\u7ed9 " + to + "\uff1a") : "\u7ed9\u4f60\uff1a";
-      var fromText = from ? ("\u2014\u2014 " + from) : "\u2014\u2014 \u6211";
-
-      win.innerHTML =
-        '<div class="popBar">' +
-          '<div class="popTitle">\ud83d\udc8c ' + escapeHtml(titleText) + '</div>' +
-          '<button class="popClose" title="\u5173\u95ed">\u00d7</button>' +
-        '</div>' +
-        '<div class="popBody">' + escapeHtml(text) + '</div>' +
-        '<div class="popFooter">' +
-          '<button class="popMiniBtn" data-act="more">\u518d\u6765\u4e00\u53e5</button>' +
-          '<button class="popMiniBtn" data-act="copy">\u590d\u5236</button>' +
-        '</div>' +
-        '<div style="text-align:right; font-weight:900; color:#ffd6ea; margin-top:8px;">' + escapeHtml(fromText) + '</div>';
-
-      popWrap.appendChild(win);
-
-      requestAnimationFrame(function(){
-        var rect = win.getBoundingClientRect();
-        var pos = randomPos(rect.width, rect.height);
-        win.style.left = pos.x + "px";
-        win.style.top  = pos.y + "px";
-        bringToFront(win);
-      });
-
-      win.querySelector(".popClose").addEventListener("click", function(){ win.remove(); });
-
-      win.addEventListener("click", function(e){
-        var t = e.target;
-        var act = (t && t.dataset) ? t.dataset.act : null;
-        if(!act) return;
-
-        if(act === "more") createPopWin(nextLine());
-        if(act === "copy"){
-          var plain = titleText + "\n" + text + "\n" + fromText;
-          if(navigator.clipboard && navigator.clipboard.writeText){
-            navigator.clipboard.writeText(plain).then(function(){ showToast("\u5df2\u590d\u5236"); }, function(){ showToast("\u590d\u5236\u5931\u8d25"); });
-          }else{
-            var ta = document.createElement("textarea");
-            ta.value = plain;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            ta.remove();
-            showToast("\u5df2\u590d\u5236");
+          var toast = document.getElementById("toast");
+          var toastTimer = null;
+          function showToast(t) {
+            toast.textContent = t;
+            toast.classList.add("show");
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () {
+              toast.classList.remove("show");
+            }, 1400);
           }
+
+          /* 情话 */
+          var LINES = [
+            to + "\uff0c\u60c5\u4eba\u8282\u5feb\u4e50\u2764\ufe0f",
+            "\u6211\u4e0d\u662f\u4e09\u5206\u949f\u70ed\u5ea6\uff0c\u6211\u662f\u5bf9\u4f60\u8ba4\u771f\u3002",
+            "\u8ba4\u8bc6\u4f60\u4ee5\u540e\uff0c\u6211\u7684\u5feb\u4e50\u53d8\u5f97\u66f4\u5177\u4f53\u4e86\u3002",
+            "\u4f60\u4e00\u7b11\uff0c\u6211\u5c31\u89c9\u5f97\u4eca\u5929\u503c\u4e86\u3002",
+            "\u6211\u60f3\u628a\u504f\u7231\u548c\u4f8b\u5916\u90fd\u7ed9\u4f60\u3002",
+            "\u5982\u679c\u53ef\u4ee5\uff0c\u6211\u60f3\u4e00\u76f4\u4e00\u76f4\u5bf9\u4f60\u597d\u3002",
+            "\u6211\u60f3\u5f88\u8ba4\u771f\u8ddf\u4f60\u8bf4\uff1a\u6211\u771f\u7684\u597d\u559c\u6b22\u4f60\u3002",
+            "\u4f60\u613f\u4e0d\u613f\u610f\u7ed9\u6211\u4e00\u4e2a\u673a\u4f1a\uff1f",
+            "\u6211\u60f3\u628a\u6211\u6240\u6709\u7684\u6e29\u67d4\uff0c\u90fd\u7559\u7ed9\u4f60\u3002",
+            "\u4f60\u4e0d\u7528\u591a\u597d\uff0c\u4f60\u5728\u6211\u5fc3\u91cc\u5c31\u662f\u6700\u597d\u3002",
+            "\u6211\u559c\u6b22\u4f60\u4e0d\u662f\u56e0\u4e3a\u4f60\u5b8c\u7f8e\uff0c\u800c\u662f\u56e0\u4e3a\u4f60\u521a\u597d\u662f\u4f60\u3002",
+            "\u5982\u679c\u4eca\u5929\u6709\u597d\u8fd0\uff0c\u90a3\u4e00\u5b9a\u662f\u56e0\u4e3a\u9047\u89c1\u4f60\u3002",
+            "\u6211\u60f3\u548c\u4f60\u4e00\u8d77\uff0c\u628a\u5e73\u51e1\u7684\u65e5\u5b50\u8fc7\u6210\u6d6a\u6f2b\u3002",
+            "\u4f60\u662f\u6211\u60f3\u8ba4\u771f\u7ecf\u8425\u7684\u90a3\u4e2a\u4eba\u3002",
+            "\u4f60\u7684\u51fa\u73b0\uff0c\u8ba9\u6211\u5f00\u59cb\u671f\u5f85\u660e\u5929\u3002",
+            "\u6211\u4e0d\u592a\u4f1a\u8bf4\u60c5\u8bdd\uff0c\u4f46\u6211\u4f1a\u4e00\u76f4\u5bf9\u4f60\u597d\u3002",
+            "\u6211\u60f3\u7275\u7740\u4f60\u7684\u624b\uff0c\u8d70\u5f88\u8fdc\u5f88\u8fdc\u3002",
+            "\u53ef\u4ee5\u4e0d\u53ef\u4ee5\uff0c\u628a\u4f60\u7684\u4ee5\u540e\u5206\u6211\u4e00\u70b9\u70b9\uff1f",
+          ];
+          var lineIdx = 0;
+          function nextLine() {
+            var s = LINES[lineIdx % LINES.length];
+            lineIdx++;
+            return s;
+          }
+
+          /* ================== 烟花 ================== */
+          var fw = document.getElementById("fw");
+          var fctx = fw.getContext("2d");
+          var fDPR = 1,
+            fW = 0,
+            fH = 0;
+          var sparks = [];
+
+          var SPARKS_MAX = 10000;
+          var AMBIENT_MS = 10;
+          var BIG_MS = 100;
+          var lastAmbient = 0;
+          var lastBig = 0;
+
+          var SAFE_SPARKS_CAP = 3500;
+          function sparksCap() {
+            return Math.min(SPARKS_MAX, SAFE_SPARKS_CAP);
+          }
+
+          function fwResize() {
+            fDPR = 1;
+            fW = Math.floor(window.innerWidth * fDPR);
+            fH = Math.floor(window.innerHeight * fDPR);
+            fw.width = fW;
+            fw.height = fH;
+          }
+          window.addEventListener("resize", fwResize, { passive: true });
+          fwResize();
+
+          function launchFirework(strong) {
+            var x = rand(0.08, 0.92) * fW;
+            var y = (strong ? rand(0.1, 0.52) : rand(0.14, 0.76)) * fH;
+
+            var count = strong
+              ? Math.floor(rand(34, 48))
+              : Math.floor(rand(18, 26));
+            var baseHue = rand(320, 360);
+
+            for (var i = 0; i < count; i++) {
+              var ang = rand(0, Math.PI * 2);
+              var spd = strong ? rand(2.0, 3.5) : rand(1.1, 2.2);
+              sparks.push({
+                x: x,
+                y: y,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd,
+                life: strong ? rand(22, 34) : rand(16, 26),
+                hue: baseHue + rand(-14, 14),
+                a: rand(0.65, 1),
+                r: strong ? rand(1.0, 1.8) : rand(0.8, 1.3),
+              });
+            }
+
+            var cap = sparksCap();
+            if (sparks.length > cap) sparks.splice(0, sparks.length - cap);
+          }
+
+          function fwDraw() {
+            var t = Date.now();
+
+            fctx.globalCompositeOperation = "source-over";
+            fctx.fillStyle = "rgba(0,0,0,0.06)";
+            fctx.fillRect(0, 0, fW, fH);
+
+            var steps = 0;
+            while (t - lastAmbient >= AMBIENT_MS && steps < 6) {
+              lastAmbient += AMBIENT_MS;
+              launchFirework(false);
+              launchFirework(false);
+              steps++;
+            }
+
+            steps = 0;
+            while (t - lastBig >= BIG_MS && steps < 3) {
+              lastBig += BIG_MS;
+              launchFirework(true);
+              steps++;
+            }
+
+            fctx.globalCompositeOperation = "lighter";
+            for (var i = sparks.length - 1; i >= 0; i--) {
+              var p = sparks[i];
+              p.x += p.vx;
+              p.y += p.vy;
+              p.vx *= 0.985;
+              p.vy *= 0.985;
+              p.vy += 0.02;
+              p.life -= 1;
+              p.a *= 0.985;
+
+              if (p.life <= 0 || p.a < 0.05) {
+                sparks.splice(i, 1);
+                continue;
+              }
+
+              fctx.globalAlpha = p.a;
+
+              fctx.beginPath();
+              fctx.arc(p.x, p.y, p.r * 2.2, 0, Math.PI * 2);
+              fctx.fillStyle = "hsla(" + p.hue + ",95%,62%,0.12)";
+              fctx.fill();
+
+              fctx.beginPath();
+              fctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+              fctx.fillStyle = "hsla(" + p.hue + ",95%,72%,1)";
+              fctx.fill();
+            }
+            fctx.globalAlpha = 1;
+
+            requestAnimationFrame(fwDraw);
+          }
+
+          lastAmbient = Date.now();
+          lastBig = Date.now();
+          setTimeout(function () {
+            for (var k = 0; k < 10; k++) {
+              setTimeout(function () {
+                launchFirework(true);
+              }, k * 80);
+            }
+          }, 220);
+
+          fwDraw();
+
+          /* ================== 心形（震撼升级版） ================== */
+          var canvas = document.getElementById("c");
+          var ctx = canvas.getContext("2d");
+          var DPR = 1,
+            W = 0,
+            H = 0;
+          var outline = [],
+            particles = [],
+            sparkle = [];
+          var flowParticles = []; /* 沿轮廓流动的光点 */
+          var burstParticles = []; /* 从中心向外爆发的粒子 */
+          var innerFill = []; /* 心形内部填充粒子 */
+          var heartBeat = 0; /* 心跳节拍 */
+
+          function heartPoint(tt) {
+            var x = 16 * Math.pow(Math.sin(tt), 3);
+            var y =
+              13 * Math.cos(tt) -
+              5 * Math.cos(2 * tt) -
+              2 * Math.cos(3 * tt) -
+              Math.cos(4 * tt);
+            return { x: x, y: y };
+          }
+          /* 判断点是否在心形内部 */
+          function isInsideHeart(px, py) {
+            var nx = px / 16;
+            var ny = py / 16;
+            var v = nx * nx + ny * ny - 1;
+            return v * v * v - nx * nx * ny * ny * ny <= 0;
+          }
+          function center() {
+            return { x: W * 0.5, y: H * 0.55 };
+          }
+
+          function resizeHeart() {
+            DPR = 1;
+            var rect = canvas.getBoundingClientRect();
+            W = Math.max(1, Math.floor(rect.width * DPR));
+            H = Math.max(1, Math.floor(rect.height * DPR));
+            canvas.width = W;
+            canvas.height = H;
+            buildOutline();
+            if (particles.length === 0) initParticles();
+          }
+          window.addEventListener("resize", resizeHeart, { passive: true });
+
+          var heartScale = function () {
+            return Math.min(W, H) * 0.022;
+          };
+
+          function buildOutline() {
+            outline = [];
+            var steps = 360;
+            var sc = heartScale();
+            var c = center();
+            for (var i = 0; i < steps; i++) {
+              var tt = (i / steps) * Math.PI * 2;
+              var p = heartPoint(tt);
+              outline.push({
+                x: c.x + p.x * sc,
+                y: c.y - p.y * sc,
+                baseX: c.x + p.x * sc,
+                baseY: c.y - p.y * sc,
+                r: rand(1.2, 2.2),
+                a: rand(0.55, 0.9),
+                tw: rand(0.003, 0.008),
+                hue: rand(330, 358),
+                phase: rand(0, Math.PI * 2),
+              });
+            }
+          }
+
+          /* 轮廓流光粒子 */
+          function makeFlowParticle() {
+            var angle = rand(0, Math.PI * 2);
+            var sc = heartScale();
+            var c = center();
+            var p = heartPoint(angle);
+            return {
+              angle: angle,
+              speed: rand(0.008, 0.018),
+              x: c.x + p.x * sc,
+              y: c.y - p.y * sc,
+              r: rand(2.0, 4.0),
+              a: rand(0.6, 1.0),
+              hue: rand(330, 360),
+              trail: [],
+            };
+          }
+
+          /* 内部填充粒子 */
+          function makeInnerParticle() {
+            var sc = heartScale();
+            var c = center();
+            var px, py, hx, hy;
+            for (var attempt = 0; attempt < 50; attempt++) {
+              hx = rand(-16, 16);
+              hy = rand(-16, 16);
+              if (isInsideHeart(hx, -hy)) {
+                px = c.x + hx * sc;
+                py = c.y + hy * sc;
+                return {
+                  x: px,
+                  y: py,
+                  baseX: px,
+                  baseY: py,
+                  r: rand(0.5, 1.5),
+                  a: rand(0.06, 0.22),
+                  tw: rand(0.002, 0.006),
+                  drift: rand(0.3, 1.2),
+                  phase: rand(0, Math.PI * 2),
+                  hue: rand(330, 355),
+                };
+              }
+            }
+            return {
+              x: c.x,
+              y: c.y,
+              baseX: c.x,
+              baseY: c.y,
+              r: 0.8,
+              a: 0.1,
+              tw: 0.004,
+              drift: 0.5,
+              phase: 0,
+              hue: 340,
+            };
+          }
+
+          function makeParticle() {
+            var tt = rand(0, Math.PI * 2);
+            var p = heartPoint(tt);
+            var sc = heartScale();
+            var c = center();
+            var cx = c.x + p.x * sc;
+            var cy = c.y - p.y * sc;
+            return {
+              x: cx + rand(-4, 4),
+              y: cy + rand(-4, 4),
+              vx: rand(-0.15, 0.15),
+              vy: rand(-0.15, 0.15),
+              r: rand(0.8, 2.0),
+              a: rand(0.35, 0.85),
+              life: rand(160, 380),
+              hue: rand(325, 358),
+            };
+          }
+
+          /* 爆发粒子（从中心射向轮廓方向） */
+          function makeBurstParticle() {
+            var tt = rand(0, Math.PI * 2);
+            var p = heartPoint(tt);
+            var sc = heartScale();
+            var c = center();
+            var tx = c.x + p.x * sc;
+            var ty = c.y - p.y * sc;
+            var dx = tx - c.x,
+              dy = ty - c.y;
+            var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            var speed = rand(0.4, 1.6);
+            return {
+              x: c.x + rand(-3, 3),
+              y: c.y + rand(-3, 3),
+              vx: (dx / dist) * speed,
+              vy: (dy / dist) * speed,
+              r: rand(0.6, 1.8),
+              a: rand(0.5, 1.0),
+              life: rand(60, 140),
+              hue: rand(330, 360),
+            };
+          }
+
+          function makeSpark() {
+            return {
+              x: rand(0, W),
+              y: rand(0, H),
+              vy: rand(0.06, 0.14),
+              r: rand(0.5, 1.4),
+              a: rand(0.04, 0.14),
+              tw: rand(0.001, 0.005),
+            };
+          }
+
+          function initParticles() {
+            particles = [];
+            sparkle = [];
+            flowParticles = [];
+            innerFill = [];
+            for (var i = 0; i < 280; i++) particles.push(makeParticle());
+            for (var j = 0; j < 100; j++) sparkle.push(makeSpark());
+            for (var k = 0; k < 8; k++) flowParticles.push(makeFlowParticle());
+            for (var f = 0; f < 200; f++) innerFill.push(makeInnerParticle());
+          }
+
+          function drawHeart() {
+            var now = performance.now ? performance.now() : Date.now();
+
+            /* 心跳：每 800ms 一个周期 */
+            heartBeat = (now * 0.001 * Math.PI * 2) / 0.8;
+            var beatScale =
+              1.0 + Math.pow(Math.max(0, Math.sin(heartBeat)), 3) * 0.06;
+
+            ctx.clearRect(0, 0, W, H);
+
+            /* 背景渐变 */
+            var bg = ctx.createRadialGradient(
+              W * 0.5,
+              H * 0.55,
+              0,
+              W * 0.5,
+              H * 0.55,
+              Math.max(W, H) * 0.65,
+            );
+            bg.addColorStop(0, "rgba(255,60,140,0.14)");
+            bg.addColorStop(0.4, "rgba(180,20,80,0.06)");
+            bg.addColorStop(1, "rgba(0,0,0,0.60)");
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, W, H);
+
+            /* 心跳光晕 - 大范围脉冲辉光 */
+            var glowA = Math.pow(Math.max(0, Math.sin(heartBeat)), 4) * 0.25;
+            var c = center();
+            var glowR = Math.min(W, H) * 0.42 * beatScale;
+            var glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, glowR);
+            glow.addColorStop(0, "rgba(255,50,120," + glowA * 0.8 + ")");
+            glow.addColorStop(0.3, "rgba(255,80,150," + glowA * 0.4 + ")");
+            glow.addColorStop(0.6, "rgba(200,30,100," + glowA * 0.15 + ")");
+            glow.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, W, H);
+
+            /* 背景星尘 */
+            for (var k = 0; k < sparkle.length; k++) {
+              var s = sparkle[k];
+              s.y += s.vy;
+              if (s.y > H + 10) {
+                s.y = -10;
+                s.x = rand(0, W);
+              }
+              var sa = s.a + Math.sin(now * s.tw) * 0.04;
+              ctx.globalAlpha = Math.max(0, sa);
+              ctx.beginPath();
+              ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(255,210,235,1)";
+              ctx.fill();
+            }
+
+            /* 内部填充粒子（呼吸浮动） */
+            ctx.globalCompositeOperation = "lighter";
+            for (var ff = 0; ff < innerFill.length; ff++) {
+              var ip = innerFill[ff];
+              ip.x =
+                ip.baseX +
+                Math.sin(now * ip.tw + ip.phase) * ip.drift * beatScale;
+              ip.y =
+                ip.baseY +
+                Math.cos(now * ip.tw * 1.3 + ip.phase) * ip.drift * beatScale;
+              var ia =
+                ip.a *
+                (0.7 + Math.pow(Math.max(0, Math.sin(heartBeat)), 2) * 0.6);
+              ctx.globalAlpha = ia;
+              ctx.beginPath();
+              ctx.arc(ip.x, ip.y, ip.r * beatScale, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + ip.hue + ",90%,65%,1)";
+              ctx.fill();
+            }
+
+            /* 轮廓（加粗+跳动缩放） */
+            var sc = heartScale();
+            for (var q = 0; q < outline.length; q++) {
+              var o = outline[q];
+              /* 根据心跳微调位置 */
+              var tt = (q / outline.length) * Math.PI * 2;
+              var hp = heartPoint(tt);
+              o.x = c.x + hp.x * sc * beatScale;
+              o.y = c.y - hp.y * sc * beatScale;
+
+              var oa = o.a + Math.sin(now * o.tw + o.phase) * 0.12;
+              oa =
+                oa *
+                (0.8 + Math.pow(Math.max(0, Math.sin(heartBeat)), 2) * 0.4);
+
+              /* 外发光 */
+              ctx.globalAlpha = oa * 0.3;
+              ctx.beginPath();
+              ctx.arc(o.x, o.y, o.r * 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + o.hue + ",95%,60%,0.15)";
+              ctx.fill();
+
+              /* 中发光 */
+              ctx.globalAlpha = oa * 0.6;
+              ctx.beginPath();
+              ctx.arc(o.x, o.y, o.r * 2.0, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + o.hue + ",95%,68%,0.4)";
+              ctx.fill();
+
+              /* 内核 */
+              ctx.globalAlpha = oa;
+              ctx.beginPath();
+              ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + o.hue + ",95%,78%,1)";
+              ctx.fill();
+            }
+
+            /* 流光粒子（沿轮廓跑的亮点+拖尾） */
+            for (var fi = 0; fi < flowParticles.length; fi++) {
+              var fp = flowParticles[fi];
+              fp.angle += fp.speed;
+              if (fp.angle > Math.PI * 2) fp.angle -= Math.PI * 2;
+              var fhp = heartPoint(fp.angle);
+              fp.x = c.x + fhp.x * sc * beatScale;
+              fp.y = c.y - fhp.y * sc * beatScale;
+
+              /* 保存拖尾 */
+              fp.trail.push({ x: fp.x, y: fp.y });
+              if (fp.trail.length > 18) fp.trail.shift();
+
+              /* 画拖尾 */
+              for (var ti = 0; ti < fp.trail.length; ti++) {
+                var trailA = (ti / fp.trail.length) * fp.a * 0.5;
+                var trailR = fp.r * (ti / fp.trail.length) * 0.6;
+                ctx.globalAlpha = trailA;
+                ctx.beginPath();
+                ctx.arc(fp.trail[ti].x, fp.trail[ti].y, trailR, 0, Math.PI * 2);
+                ctx.fillStyle = "hsla(" + fp.hue + ",95%,75%,1)";
+                ctx.fill();
+              }
+
+              /* 流光主体 + 大光晕 */
+              ctx.globalAlpha = fp.a * 0.3;
+              ctx.beginPath();
+              ctx.arc(fp.x, fp.y, fp.r * 4, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + fp.hue + ",95%,70%,0.2)";
+              ctx.fill();
+
+              ctx.globalAlpha = fp.a;
+              ctx.beginPath();
+              ctx.arc(fp.x, fp.y, fp.r, 0, Math.PI * 2);
+              ctx.fillStyle = "#fff";
+              ctx.fill();
+            }
+
+            /* 散布粒子 */
+            for (var m = 0; m < particles.length; m++) {
+              var p = particles[m];
+              p.x += p.vx;
+              p.y += p.vy;
+              p.life -= 1;
+              if (p.life <= 0) particles[m] = makeParticle();
+              p = particles[m];
+              ctx.globalAlpha = p.a * 0.7;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.r * 1.8, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + p.hue + ",90%,60%,0.15)";
+              ctx.fill();
+              ctx.globalAlpha = p.a;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + p.hue + ",95%,70%,1)";
+              ctx.fill();
+            }
+
+            /* 爆发粒子 - 心跳高峰时喷射 */
+            var beatPhase = Math.sin(heartBeat);
+            if (beatPhase > 0.95 && burstParticles.length < 60) {
+              for (var bi = 0; bi < 12; bi++)
+                burstParticles.push(makeBurstParticle());
+            }
+            for (var bj = burstParticles.length - 1; bj >= 0; bj--) {
+              var bp = burstParticles[bj];
+              bp.x += bp.vx;
+              bp.y += bp.vy;
+              bp.life -= 1;
+              bp.a *= 0.98;
+              if (bp.life <= 0 || bp.a < 0.03) {
+                burstParticles.splice(bj, 1);
+                continue;
+              }
+              ctx.globalAlpha = bp.a * 0.4;
+              ctx.beginPath();
+              ctx.arc(bp.x, bp.y, bp.r * 2.5, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + bp.hue + ",90%,65%,0.2)";
+              ctx.fill();
+              ctx.globalAlpha = bp.a;
+              ctx.beginPath();
+              ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI * 2);
+              ctx.fillStyle = "hsla(" + bp.hue + ",95%,80%,1)";
+              ctx.fill();
+            }
+
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(drawHeart);
+          }
+
+          resizeHeart();
+          drawHeart();
+
+          /* ================== 弹窗 ================== */
+          var popWrap = document.getElementById("popWrap");
+          var z = 200;
+
+          function randomPos(w, h) {
+            var pad = 14,
+              topPad = 60;
+            var maxX = Math.max(pad, window.innerWidth - w - pad);
+            var maxY = Math.max(pad + topPad, window.innerHeight - h - pad);
+            return {
+              x: Math.floor(Math.random() * (maxX - pad + 1)) + pad,
+              y:
+                Math.floor(Math.random() * (maxY - (pad + topPad) + 1)) +
+                (pad + topPad),
+            };
+          }
+          function bringToFront(el) {
+            z += 1;
+            el.style.zIndex = z;
+          }
+
+          function makeDraggable(win, handle) {
+            var dragging = false,
+              startX = 0,
+              startY = 0,
+              origX = 0,
+              origY = 0;
+            function down(ev) {
+              dragging = true;
+              bringToFront(win);
+              var p = ev.touches ? ev.touches[0] : ev;
+              startX = p.clientX;
+              startY = p.clientY;
+              var rect = win.getBoundingClientRect();
+              origX = rect.left;
+              origY = rect.top;
+              if (ev.preventDefault) ev.preventDefault();
+            }
+            function move(ev) {
+              if (!dragging) return;
+              var p = ev.touches ? ev.touches[0] : ev;
+              var dx = p.clientX - startX;
+              var dy = p.clientY - startY;
+
+              var rect = win.getBoundingClientRect();
+              var ww = rect.width,
+                hh = rect.height;
+              var pad = 8;
+
+              var nx = origX + dx;
+              var ny = origY + dy;
+              nx = Math.max(pad, Math.min(window.innerWidth - ww - pad, nx));
+              ny = Math.max(pad, Math.min(window.innerHeight - hh - pad, ny));
+
+              win.style.left = nx + "px";
+              win.style.top = ny + "px";
+            }
+            function up() {
+              dragging = false;
+            }
+
+            handle.addEventListener("mousedown", down);
+            window.addEventListener("mousemove", move);
+            window.addEventListener("mouseup", up);
+
+            handle.addEventListener("touchstart", down, { passive: false });
+            window.addEventListener("touchmove", move, { passive: false });
+            window.addEventListener("touchend", up);
+          }
+
+          function createPopWin(text) {
+            var win = document.createElement("div");
+            win.className = "popWin";
+
+            var titleText = to
+              ? "\u7ed9 " + to + "\uff1a"
+              : "\u7ed9\u4f60\uff1a";
+            var fromText = from
+              ? "\u2014\u2014 " + from
+              : "\u2014\u2014 \u6211";
+
+            win.innerHTML =
+              '<div class="popBar">' +
+              '<div class="popTitle">\ud83d\udc8c ' +
+              escapeHtml(titleText) +
+              "</div>" +
+              '<button class="popClose" title="\u5173\u95ed">\u00d7</button>' +
+              "</div>" +
+              '<div class="popBody">' +
+              escapeHtml(text) +
+              "</div>" +
+              '<div class="popFooter">' +
+              '<button class="popMiniBtn" data-act="more">\u518d\u6765\u4e00\u53e5</button>' +
+              '<button class="popMiniBtn" data-act="copy">\u590d\u5236</button>' +
+              "</div>" +
+              '<div style="text-align:right; font-weight:900; color:#ffd6ea; margin-top:8px;">' +
+              escapeHtml(fromText) +
+              "</div>";
+
+            popWrap.appendChild(win);
+
+            requestAnimationFrame(function () {
+              var rect = win.getBoundingClientRect();
+              var pos = randomPos(rect.width, rect.height);
+              win.style.left = pos.x + "px";
+              win.style.top = pos.y + "px";
+              bringToFront(win);
+            });
+
+            win
+              .querySelector(".popClose")
+              .addEventListener("click", function () {
+                win.remove();
+              });
+
+            win.addEventListener("click", function (e) {
+              var t = e.target;
+              var act = t && t.dataset ? t.dataset.act : null;
+              if (!act) return;
+
+              if (act === "more") createPopWin(nextLine());
+              if (act === "copy") {
+                var plain = titleText + "\n" + text + "\n" + fromText;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(plain).then(
+                    function () {
+                      showToast("\u5df2\u590d\u5236");
+                    },
+                    function () {
+                      showToast("\u590d\u5236\u5931\u8d25");
+                    },
+                  );
+                } else {
+                  var ta = document.createElement("textarea");
+                  ta.value = plain;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand("copy");
+                  ta.remove();
+                  showToast("\u5df2\u590d\u5236");
+                }
+              }
+            });
+
+            makeDraggable(win, win.querySelector(".popBar"));
+
+            var wins = popWrap.querySelectorAll(".popWin");
+            if (wins.length > 100) wins[0].remove();
+          }
+
+          var btnAuto = document.getElementById("btnAuto");
+          var timer = null;
+          var popCount = 0;
+
+          function stopAuto(reason) {
+            if (timer) {
+              clearInterval(timer);
+              timer = null;
+            }
+            btnAuto.textContent = "\u70b9\u6211\u4e00\u4e0b \u25b6\ufe0e";
+            if (reason) showToast(reason);
+          }
+
+          btnAuto.addEventListener("click", function () {
+            if (timer) {
+              stopAuto("\u5df2\u6682\u505c");
+              return;
+            }
+            btnAuto.textContent = "\u70b9\u6211\u4e00\u4e0b \u23f8";
+            showToast("\u65e0\u9650\u6a21\u5f0f\u5f00\u542f\ud83d\udd25");
+
+            timer = setInterval(function () {
+              popCount++;
+              createPopWin(nextLine());
+              if (popCount % 2 === 0) launchFirework(false);
+            }, 300);
+          });
+
+          /* ================== 欢迎页 + BGM ================== */
+          var splash = document.getElementById("splash");
+          var bgm = document.getElementById("bgm");
+          bgm.volume = 0.5;
+
+          splash.addEventListener("click", function () {
+            splash.classList.add("hide");
+            /* 点击后播放 BGM */
+            bgm.play().catch(function () {});
+          });
+        } catch (e) {
+          showErr(e && e.message ? e.message : String(e));
         }
-      });
-
-      makeDraggable(win, win.querySelector(".popBar"));
-
-      var wins = popWrap.querySelectorAll(".popWin");
-      if(wins.length > 100) wins[0].remove();
-    }
-
-    var btnAuto = document.getElementById("btnAuto");
-    var timer = null;
-    var popCount = 0;
-
-    function stopAuto(reason){
-      if(timer){ clearInterval(timer); timer = null; }
-      btnAuto.textContent = "\u70b9\u6211\u4e00\u4e0b \u25b6\ufe0e";
-      if(reason) showToast(reason);
-    }
-
-    btnAuto.addEventListener("click", function(){
-      if(timer){ stopAuto("\u5df2\u6682\u505c"); return; }
-      btnAuto.textContent = "\u70b9\u6211\u4e00\u4e0b \u23f8";
-      showToast("\u65e0\u9650\u6a21\u5f0f\u5f00\u542f\ud83d\udd25");
-
-      timer = setInterval(function(){
-        popCount++;
-        createPopWin(nextLine());
-        if(popCount % 2 === 0) launchFirework(false);
-      }, 300);
-    });
-
-    /* ================== 欢迎页 + BGM ================== */
-    var splash = document.getElementById("splash");
-    var bgm = document.getElementById("bgm");
-    bgm.volume = 0.5;
-
-    splash.addEventListener("click", function(){
-      splash.classList.add("hide");
-      /* 点击后播放 BGM */
-      bgm.play().catch(function(){});
-    });
-
-  }catch(e){
-    showErr(e && e.message ? e.message : String(e));
-  }
-})();
-</script>
-</body>
+      })();
+    </script>
+  </body>
 </html>

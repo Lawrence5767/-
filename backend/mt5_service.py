@@ -4,14 +4,13 @@ Stores all trade data pushed from the MT5 Expert Advisor in SQLite.
 Works on macOS/Linux/Windows - no MetaTrader5 Python package needed.
 """
 
-import sqlite3
 import json
 import os
+import sqlite3
 import threading
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
 from typing import Optional
-
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "tracker.db")
 
@@ -32,6 +31,7 @@ def _get_conn() -> sqlite3.Connection:
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class PositionInfo:
@@ -112,6 +112,7 @@ class AccountInfo:
 # ---------------------------------------------------------------------------
 # DataStore
 # ---------------------------------------------------------------------------
+
 
 class DataStore:
     """SQLite-backed data store for XAU/USD trade data pushed from MT5 EA."""
@@ -235,7 +236,8 @@ class DataStore:
         # Account
         acct = data.get("account")
         if acct:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO account (id, login, balance, equity, margin, free_margin,
                     margin_level, profit, currency, server, name, updated_at)
                 VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -245,71 +247,106 @@ class DataStore:
                     margin_level=excluded.margin_level, profit=excluded.profit,
                     currency=excluded.currency, server=excluded.server,
                     name=excluded.name, updated_at=excluded.updated_at
-            """, (
-                acct.get("login", 0), acct.get("balance", 0), acct.get("equity", 0),
-                acct.get("margin", 0), acct.get("free_margin", 0),
-                acct.get("margin_level", 0), acct.get("profit", 0),
-                acct.get("currency", "USD"), acct.get("server", ""),
-                acct.get("name", ""), now,
-            ))
+            """,
+                (
+                    acct.get("login", 0),
+                    acct.get("balance", 0),
+                    acct.get("equity", 0),
+                    acct.get("margin", 0),
+                    acct.get("free_margin", 0),
+                    acct.get("margin_level", 0),
+                    acct.get("profit", 0),
+                    acct.get("currency", "USD"),
+                    acct.get("server", ""),
+                    acct.get("name", ""),
+                    now,
+                ),
+            )
 
         # Price
         price = data.get("price")
         if price:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO price (id, symbol, bid, ask, spread, time, updated_at)
                 VALUES (1, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     symbol=excluded.symbol, bid=excluded.bid, ask=excluded.ask,
                     spread=excluded.spread, time=excluded.time, updated_at=excluded.updated_at
-            """, (
-                price.get("symbol", "XAUUSD"), price.get("bid", 0),
-                price.get("ask", 0), price.get("spread", 0),
-                price.get("time", now), now,
-            ))
+            """,
+                (
+                    price.get("symbol", "XAUUSD"),
+                    price.get("bid", 0),
+                    price.get("ask", 0),
+                    price.get("spread", 0),
+                    price.get("time", now),
+                    now,
+                ),
+            )
 
         # Positions - replace all
         positions = data.get("positions")
         if positions is not None:
             conn.execute("DELETE FROM positions")
             for p in positions:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO positions (ticket, symbol, type, volume, open_price,
                         current_price, sl, tp, profit, swap, commission, open_time,
                         magic, comment, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    p.get("ticket", 0), p.get("symbol", "XAUUSD"),
-                    p.get("type", ""), p.get("volume", 0),
-                    p.get("open_price", 0), p.get("current_price", 0),
-                    p.get("sl", 0), p.get("tp", 0),
-                    p.get("profit", 0), p.get("swap", 0),
-                    p.get("commission", 0), p.get("open_time", now),
-                    p.get("magic", 0), p.get("comment", ""), now,
-                ))
+                """,
+                    (
+                        p.get("ticket", 0),
+                        p.get("symbol", "XAUUSD"),
+                        p.get("type", ""),
+                        p.get("volume", 0),
+                        p.get("open_price", 0),
+                        p.get("current_price", 0),
+                        p.get("sl", 0),
+                        p.get("tp", 0),
+                        p.get("profit", 0),
+                        p.get("swap", 0),
+                        p.get("commission", 0),
+                        p.get("open_time", now),
+                        p.get("magic", 0),
+                        p.get("comment", ""),
+                        now,
+                    ),
+                )
 
         # Orders - replace all
         orders = data.get("orders")
         if orders is not None:
             conn.execute("DELETE FROM orders")
             for o in orders:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO orders (ticket, symbol, type, volume, price,
                         sl, tp, time_setup, magic, comment, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    o.get("ticket", 0), o.get("symbol", "XAUUSD"),
-                    o.get("type", ""), o.get("volume", 0),
-                    o.get("price", 0), o.get("sl", 0), o.get("tp", 0),
-                    o.get("time_setup", now), o.get("magic", 0),
-                    o.get("comment", ""), now,
-                ))
+                """,
+                    (
+                        o.get("ticket", 0),
+                        o.get("symbol", "XAUUSD"),
+                        o.get("type", ""),
+                        o.get("volume", 0),
+                        o.get("price", 0),
+                        o.get("sl", 0),
+                        o.get("tp", 0),
+                        o.get("time_setup", now),
+                        o.get("magic", 0),
+                        o.get("comment", ""),
+                        now,
+                    ),
+                )
 
         # Deals (append/upsert)
         deals = data.get("deals")
         if deals:
             for d in deals:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO deals (ticket, deal_order, symbol, type, volume,
                         price, profit, swap, commission, fee, time, magic,
                         comment, entry, updated_at)
@@ -318,15 +355,25 @@ class DataStore:
                         profit=excluded.profit, swap=excluded.swap,
                         commission=excluded.commission, fee=excluded.fee,
                         updated_at=excluded.updated_at
-                """, (
-                    d.get("ticket", 0), d.get("order", 0),
-                    d.get("symbol", "XAUUSD"), d.get("type", ""),
-                    d.get("volume", 0), d.get("price", 0),
-                    d.get("profit", 0), d.get("swap", 0),
-                    d.get("commission", 0), d.get("fee", 0),
-                    d.get("time", now), d.get("magic", 0),
-                    d.get("comment", ""), d.get("entry", ""), now,
-                ))
+                """,
+                    (
+                        d.get("ticket", 0),
+                        d.get("order", 0),
+                        d.get("symbol", "XAUUSD"),
+                        d.get("type", ""),
+                        d.get("volume", 0),
+                        d.get("price", 0),
+                        d.get("profit", 0),
+                        d.get("swap", 0),
+                        d.get("commission", 0),
+                        d.get("fee", 0),
+                        d.get("time", now),
+                        d.get("magic", 0),
+                        d.get("comment", ""),
+                        d.get("entry", ""),
+                        now,
+                    ),
+                )
 
         conn.commit()
 
@@ -338,10 +385,16 @@ class DataStore:
         if not row:
             return None
         return AccountInfo(
-            login=row["login"], balance=row["balance"], equity=row["equity"],
-            margin=row["margin"], free_margin=row["free_margin"],
-            margin_level=row["margin_level"], profit=row["profit"],
-            currency=row["currency"], server=row["server"], name=row["name"],
+            login=row["login"],
+            balance=row["balance"],
+            equity=row["equity"],
+            margin=row["margin"],
+            free_margin=row["free_margin"],
+            margin_level=row["margin_level"],
+            profit=row["profit"],
+            currency=row["currency"],
+            server=row["server"],
+            name=row["name"],
         )
 
     def get_symbol_price(self) -> Optional[dict]:
@@ -359,14 +412,25 @@ class DataStore:
 
     def get_open_positions(self) -> list[PositionInfo]:
         conn = _get_conn()
-        rows = conn.execute("SELECT * FROM positions ORDER BY open_time DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM positions ORDER BY open_time DESC"
+        ).fetchall()
         return [
             PositionInfo(
-                ticket=r["ticket"], symbol=r["symbol"], type=r["type"],
-                volume=r["volume"], open_price=r["open_price"],
-                current_price=r["current_price"], sl=r["sl"], tp=r["tp"],
-                profit=r["profit"], swap=r["swap"], commission=r["commission"],
-                open_time=r["open_time"], magic=r["magic"], comment=r["comment"],
+                ticket=r["ticket"],
+                symbol=r["symbol"],
+                type=r["type"],
+                volume=r["volume"],
+                open_price=r["open_price"],
+                current_price=r["current_price"],
+                sl=r["sl"],
+                tp=r["tp"],
+                profit=r["profit"],
+                swap=r["swap"],
+                commission=r["commission"],
+                open_time=r["open_time"],
+                magic=r["magic"],
+                comment=r["comment"],
             )
             for r in rows
         ]
@@ -376,9 +440,16 @@ class DataStore:
         rows = conn.execute("SELECT * FROM orders ORDER BY time_setup DESC").fetchall()
         return [
             OrderInfo(
-                ticket=r["ticket"], symbol=r["symbol"], type=r["type"],
-                volume=r["volume"], price=r["price"], sl=r["sl"], tp=r["tp"],
-                time_setup=r["time_setup"], magic=r["magic"], comment=r["comment"],
+                ticket=r["ticket"],
+                symbol=r["symbol"],
+                type=r["type"],
+                volume=r["volume"],
+                price=r["price"],
+                sl=r["sl"],
+                tp=r["tp"],
+                time_setup=r["time_setup"],
+                magic=r["magic"],
+                comment=r["comment"],
             )
             for r in rows
         ]
@@ -391,11 +462,20 @@ class DataStore:
         ).fetchall()
         return [
             DealInfo(
-                ticket=r["ticket"], order=r["deal_order"], symbol=r["symbol"],
-                type=r["type"], volume=r["volume"], price=r["price"],
-                profit=r["profit"], swap=r["swap"], commission=r["commission"],
-                fee=r["fee"], time=r["time"], magic=r["magic"],
-                comment=r["comment"], entry=r["entry"],
+                ticket=r["ticket"],
+                order=r["deal_order"],
+                symbol=r["symbol"],
+                type=r["type"],
+                volume=r["volume"],
+                price=r["price"],
+                profit=r["profit"],
+                swap=r["swap"],
+                commission=r["commission"],
+                fee=r["fee"],
+                time=r["time"],
+                magic=r["magic"],
+                comment=r["comment"],
+                entry=r["entry"],
             )
             for r in rows
         ]
@@ -406,12 +486,23 @@ class DataStore:
 
         if not closing_deals:
             return {
-                "total_trades": 0, "winning_trades": 0, "losing_trades": 0,
-                "win_rate": 0.0, "total_profit": 0.0, "total_loss": 0.0,
-                "net_pnl": 0.0, "avg_profit": 0.0, "avg_loss": 0.0,
-                "profit_factor": 0.0, "largest_win": 0.0, "largest_loss": 0.0,
-                "total_volume": 0.0, "total_commission": 0.0, "total_swap": 0.0,
-                "max_drawdown": 0.0, "period_days": days,
+                "total_trades": 0,
+                "winning_trades": 0,
+                "losing_trades": 0,
+                "win_rate": 0.0,
+                "total_profit": 0.0,
+                "total_loss": 0.0,
+                "net_pnl": 0.0,
+                "avg_profit": 0.0,
+                "avg_loss": 0.0,
+                "profit_factor": 0.0,
+                "largest_win": 0.0,
+                "largest_loss": 0.0,
+                "total_volume": 0.0,
+                "total_commission": 0.0,
+                "total_swap": 0.0,
+                "max_drawdown": 0.0,
+                "period_days": days,
             }
 
         winners = [d for d in closing_deals if d.profit > 0]
@@ -442,7 +533,9 @@ class DataStore:
             "net_pnl": round(net_pnl, 2),
             "avg_profit": round(total_profit / len(winners), 2) if winners else 0.0,
             "avg_loss": round(total_loss / len(losers), 2) if losers else 0.0,
-            "profit_factor": round(total_profit / total_loss, 2) if total_loss > 0 else float("inf"),
+            "profit_factor": (
+                round(total_profit / total_loss, 2) if total_loss > 0 else float("inf")
+            ),
             "largest_win": round(max((d.profit for d in winners), default=0.0), 2),
             "largest_loss": round(min((d.profit for d in losers), default=0.0), 2),
             "total_volume": round(sum(d.volume for d in closing_deals), 2),
@@ -457,6 +550,7 @@ class DataStore:
     def load_demo_data(self):
         """Load sample data for testing the dashboard without a live MT5 connection."""
         import random
+
         now = datetime.now()
 
         demo = {
@@ -492,7 +586,9 @@ class DataStore:
                     "profit": 149.50,
                     "swap": -2.30,
                     "commission": -3.50,
-                    "open_time": (now - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "open_time": (now - timedelta(hours=6)).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                     "magic": 0,
                     "comment": "Manual trade",
                 },
@@ -508,7 +604,9 @@ class DataStore:
                     "profit": 22.25,
                     "swap": -1.10,
                     "commission": -1.75,
-                    "open_time": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "open_time": (now - timedelta(hours=2)).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                     "magic": 0,
                     "comment": "",
                 },
@@ -522,7 +620,9 @@ class DataStore:
                     "price": 2900.00,
                     "sl": 2885.00,
                     "tp": 2950.00,
-                    "time_setup": (now - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "time_setup": (now - timedelta(hours=1)).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                     "magic": 0,
                     "comment": "Pullback entry",
                 },
@@ -541,22 +641,24 @@ class DataStore:
             base_price = 2900 + random.uniform(-50, 50)
 
             # Entry deal
-            demo["deals"].append({
-                "ticket": 300000 + i * 2,
-                "order": 400000 + i,
-                "symbol": "XAUUSD",
-                "type": "BUY" if is_buy else "SELL",
-                "volume": volume,
-                "price": round(base_price, 2),
-                "profit": 0.0,
-                "swap": 0.0,
-                "commission": round(-volume * 35, 2),
-                "fee": 0.0,
-                "time": deal_time.strftime("%Y-%m-%d %H:%M:%S"),
-                "magic": 0,
-                "comment": "",
-                "entry": "IN",
-            })
+            demo["deals"].append(
+                {
+                    "ticket": 300000 + i * 2,
+                    "order": 400000 + i,
+                    "symbol": "XAUUSD",
+                    "type": "BUY" if is_buy else "SELL",
+                    "volume": volume,
+                    "price": round(base_price, 2),
+                    "profit": 0.0,
+                    "swap": 0.0,
+                    "commission": round(-volume * 35, 2),
+                    "fee": 0.0,
+                    "time": deal_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "magic": 0,
+                    "comment": "",
+                    "entry": "IN",
+                }
+            )
 
             # Exit deal
             if is_winner:
@@ -567,23 +669,29 @@ class DataStore:
             exit_time = deal_time + timedelta(minutes=random.randint(5, 480))
             exit_price = base_price + (pnl / (volume * 100))
 
-            demo["deals"].append({
-                "ticket": 300000 + i * 2 + 1,
-                "order": 400000 + i,
-                "symbol": "XAUUSD",
-                "type": "SELL" if is_buy else "BUY",
-                "volume": volume,
-                "price": round(exit_price, 2),
-                "profit": pnl,
-                "swap": round(random.uniform(-5, 0), 2),
-                "commission": round(-volume * 35, 2),
-                "fee": 0.0,
-                "time": exit_time.strftime("%Y-%m-%d %H:%M:%S"),
-                "magic": 0,
-                "comment": "",
-                "entry": "OUT",
-            })
+            demo["deals"].append(
+                {
+                    "ticket": 300000 + i * 2 + 1,
+                    "order": 400000 + i,
+                    "symbol": "XAUUSD",
+                    "type": "SELL" if is_buy else "BUY",
+                    "volume": volume,
+                    "price": round(exit_price, 2),
+                    "profit": pnl,
+                    "swap": round(random.uniform(-5, 0), 2),
+                    "commission": round(-volume * 35, 2),
+                    "fee": 0.0,
+                    "time": exit_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "magic": 0,
+                    "comment": "",
+                    "entry": "OUT",
+                }
+            )
 
         self.push_snapshot(demo)
-        return {"status": "demo_loaded", "positions": len(demo["positions"]),
-                "orders": len(demo["orders"]), "deals": len(demo["deals"])}
+        return {
+            "status": "demo_loaded",
+            "positions": len(demo["positions"]),
+            "orders": len(demo["orders"]),
+            "deals": len(demo["deals"]),
+        }
